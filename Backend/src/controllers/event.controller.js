@@ -14,10 +14,10 @@ const createEvent = async (req,res) =>{
         title,
         description,
         date,
-        Location,
-        Category,
+        location,
+        category,
         image,
-        CreatedBy,
+        createdBy,
     } = req.body
 
 if(!title || !date){
@@ -29,10 +29,10 @@ try {
         title,
         description,
         date,
-        Location,
-        Category,
+        location,
+        category,
         image,
-        CreatedBy,
+        createdBy,
     })
 
     const savedEvent = await newEvent.save();

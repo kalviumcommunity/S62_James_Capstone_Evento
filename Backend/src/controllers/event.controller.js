@@ -41,10 +41,24 @@ try {
 }catch(error){
     res.status(500).json({error:'Failed to create an event'})
 }
+}
 
+const updateEvent = async(req,res) =>{
+    const {id} = req.params;
+    try{
+        const updatedEvent = await Event.findByIdAndUpdate(id, req.body, {new: true})
+
+        if(!updatedEvent) {
+            return res.status(404).json({message:'Event not found'})
+        }
+        res.status(200).json(updatedEvent);
+    }catch(error){
+        res.status(500).json({message:'Error updating the event', error})
+    }
 }
 
 module.exports = {
     getAllEvents,
     createEvent,
+    updateEvent,
 };

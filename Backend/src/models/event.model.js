@@ -7,10 +7,10 @@ const eventSchema = new mongoose.Schema({
     },
     description: String,
     date : Date,
-    Location : String,
-    Category: String,
+    location : String,
+    category: String,
     image: String,
-    CreatedBy: {
+    createdBy: {
        type:  mongoose.Schema.Types.ObjectId,
        ref:'User',
     },

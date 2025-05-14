@@ -9,6 +9,42 @@ const getAllEvents = async (req,res) => {
     }
 }
 
+const createEvent = async (req,res) =>{
+    const {
+        title,
+        description,
+        date,
+        Location,
+        Category,
+        image,
+        CreatedBy,
+    } = req.body
+
+if(!title || !date){
+    return res.status(400).json({error:'Title and Date are required'})
+}
+
+try {
+    const newEvent = new Event({
+        title,
+        description,
+        date,
+        Location,
+        Category,
+        image,
+        CreatedBy,
+    })
+
+    const savedEvent = await newEvent.save();
+    res.status(201).json(savedEvent);
+
+}catch(error){
+    res.status(500).json({error:'Failed to create an event'})
+}
+
+}
+
 module.exports = {
     getAllEvents,
+    createEvent,
 };

@@ -1,13 +1,18 @@
-import { useState } from 'react'
-
+import { Route, Routes } from 'react-router-dom'
 import './App.css'
+import Home from './pages/Home'
+import EventoLogin from './pages/LoginPage'
+
 
 function App() {
 
   return (
-    <div className='flex justify-center items-center h-screen bg-gray-100'>
-    <h1 className='text-green-600 text-3xl font-bold'>This is the Landing Page</h1>
-     </div>
+    <>
+    <Routes>
+      <Route path='/' element={<Home />} />
+      <Route path='/login' element={<EventoLogin />} />
+    </Routes>
+    </>
   )
 }
 

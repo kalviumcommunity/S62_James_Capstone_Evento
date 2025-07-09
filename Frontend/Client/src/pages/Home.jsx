@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Search, Filter, MapPin, Calendar, Users, Heart, User, Menu } from 'lucide-react';
 import EventCard from '../components/EventCard';
 import FilterBar from '../components/FilterBar';
-import { mockEvents } from '../data/Mockdata';
+import { mockEvents } from '../data/mockdata';
 
 const HomePage = ({ onMenuClick }) => {
   const [searchQuery, setSearchQuery] = useState('');

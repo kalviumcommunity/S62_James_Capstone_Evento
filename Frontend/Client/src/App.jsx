@@ -1,19 +1,18 @@
-import { Route, Routes } from 'react-router-dom'
-import './App.css'
-import Home from './pages/Home'
-import EventoLogin from './pages/LoginPage'
 
+import React from 'react';
+import {  Routes, Route } from 'react-router-dom'; 
+import EventoApp from './EventoApp';
+import SignInPage from './pages/SignInPage';
+import SignUpPage from './pages/SignUpPage';
 
-function App() {
-
+const App = () => {
   return (
-    <>
-    <Routes>
-      <Route path='/' element={<Home />} />
-      <Route path='/login' element={<EventoLogin />} />
-    </Routes>
-    </>
-  )
-}
+      <Routes>
+        <Route path="/" element={<EventoApp />} />
+        <Route path="/signIn" element={<SignInPage />} />
+        <Route path= "/signUp" element = {<SignUpPage />}></Route>
+      </Routes>
+  );
+};
 
-export default App
+export default App;

@@ -1,65 +1,94 @@
 const Event = require('../models/event.model');
+const cloudinary = require('../utils/cloudinary');
 
-const getAllEvents = async (req,res) => {
-    try {
-        const events = await Event.find().populate('createdBy', 'name email');
-        res.status(200).json(events);
-    }catch(error) {
-        console.error(error)
-        res.status(500).json({message: 'Internal Server Error',error});
-    }
-}
+// @desc    Get all events
+const getAllEvents = async (req, res) => {
+  try {
+    const events = await Event.find().sort({ createdAt: -1 });
+    res.status(200).json(events);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching events', error: error.message });
+  }
+};
 
-const createEvent = async (req,res) =>{
+// @desc    Create a new event
+const createEvent = async (req, res) => {
+  try {
     const {
-        title,
-        description,
-        date,
-        location,
-        category,
-        image,
-        createdBy,
-    } = req.body
+      title,
+      description,
+      date,
+      time,
+      venue,
+      organizer,
+      category,
+      contact,
+      registrationLink,
+    } = req.body;
 
-if(!title ||!date){
-    return res.status(400).json({error:'Title and Date are required.'})
-}
-
-try {
-    const newEvent = new Event({
-        title,
-        description,
-        date,
-        location,
-        category,
-        image,
-        createdBy,
-    })
-
-    const savedEvent = await newEvent.save();
-    res.status(201).json(savedEvent);
-
-}catch(error){
-    res.status(500).json({error:'Failed to create an event'})
-}
-}
-
-const updateEvent = async(req,res) =>{
-    const {id} = req.params;
-    try{
-        const updatedEvent = await Event.findByIdAndUpdate(id, req.body, {new: true})
-
-        if(!updatedEvent) {
-            return res.status(404).json({message:'Event not found'})
-        }
-        res.status(200).json(updatedEvent);
-    }catch(error){
-        res.status(500).json({message:'Error updating the event', error})
+    if (!req.file) {
+      return res.status(400).json({ message: 'Poster image is required' });
     }
-}
+
+    // Upload image to Cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'evento-posters',
+    });
+
+    const newEvent = new Event({
+      title,
+      description,
+      date,
+      time,
+      venue,
+      organizer,
+      category,
+      contact,
+      registrationLink,
+      posterUrl: result.secure_url,
+      posterPublicId: result.public_id,
+    });
+
+    await newEvent.save();
+    res.status(201).json({ message: 'Event created successfully', event: newEvent });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to create event', error: error.message });
+  }
+};
+
+// @desc    Update an event (optional)
+const updateEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedEvent = await Event.findByIdAndUpdate(id, req.body, { new: true });
+    res.status(200).json(updatedEvent);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update event', error: error.message });
+  }
+};
+
+// @desc    Delete an event (optional)
+// const deleteEvent = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const event = await Event.findById(id);
+
+//     if (!event) return res.status(404).json({ message: 'Event not found' });
+
+//     // Delete poster from Cloudinary
+//     if (event.posterPublicId) {
+//       await cloudinary.uploader.destroy(event.posterPublicId);
+//     }
+
+//     await event.deleteOne();
+//     res.status(200).json({ message: 'Event deleted successfully' });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Failed to delete event', error: error.message });
+//   }
+// };
 
 module.exports = {
-    getAllEvents,
-    createEvent,
-    updateEvent,
+  getAllEvents,
+  createEvent,
+  updateEvent,
 };

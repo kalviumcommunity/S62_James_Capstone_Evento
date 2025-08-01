@@ -1,5 +1,7 @@
 const Event = require('../models/event.model');
-const cloudinary = require('../utils/cloudinary');
+const { cloudinary } = require('../utils/cloudinary');
+
+
 
 // @desc    Get all events
 const getAllEvents = async (req, res) => {
@@ -21,9 +23,10 @@ const createEvent = async (req, res) => {
       time,
       venue,
       organizer,
-      category,
       contact,
       registrationLink,
+      eventType,      // ✅ added this
+      tags,           // ✅ added this
     } = req.body;
 
     if (!req.file) {
@@ -42,19 +45,23 @@ const createEvent = async (req, res) => {
       time,
       venue,
       organizer,
-      category,
       contact,
       registrationLink,
-      posterUrl: result.secure_url,
-      posterPublicId: result.public_id,
+      eventType,               // ✅ include it in the event object
+      tags: Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim()),  // ✅ ensure it's an array
+      image: result.secure_url,
+      createdBy: req.user?._id || null,  // if using auth middleware
     });
 
     await newEvent.save();
     res.status(201).json({ message: 'Event created successfully', event: newEvent });
+
   } catch (error) {
-    res.status(500).json({ message: 'Failed to create event', error: error.message });
+    console.error('Error creating event:', error);
+    res.status(500).json({ message: 'Error creating event', error: error.message });
   }
 };
+
 
 // @desc    Update an event (optional)
 const updateEvent = async (req, res) => {

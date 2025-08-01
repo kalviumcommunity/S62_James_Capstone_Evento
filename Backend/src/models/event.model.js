@@ -9,7 +9,7 @@ const eventSchema = new mongoose.Schema({
   organizer:  { type: String, required: true },
   contact: { type: String, required: true },
   eventType:  { type: String, required: true },
-  tags: { type: String, required: true }, // could be comma-separated
+  tags: { type: [String], required: true }, // could be comma-separated
   registrationLink: { type: String, /*required: true*/ },
   image: { type: String, /*required: true*/ }, // Cloudinary image URL
   createdBy: {

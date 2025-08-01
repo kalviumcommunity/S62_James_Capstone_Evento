@@ -113,14 +113,14 @@ const EventCreationForm = () => {
               eventType: Yup.string().required('Required'),
               tags: Yup.string().required('Required'),
               registrationLink: Yup.string().url('Invalid URL').nullable(),
-              poster: Yup.mixed().required('Required').test('fileSize', 'File too large (max 10MB)', value => value && value.size <= 10 * 1024 * 1024)
+              poster: Yup.mixed().required('Required').test('fileSize', 'File too large (max 10MB)', value => value && value.size <= 30 * 1024 * 1024)
               .test('fileType', 'Unsupported format (use JPG/PNG/GIF)', value => 
               value && ['image/jpeg', 'image/png', 'image/gif'].includes(value.type))
             })}
-            onSubmit={async (values, { setSubmitting, resetForm }) => {
-              try {
+              onSubmit={async (values, { setSubmitting, resetForm }) => {
+                try {
                   const formData = new FormData();
-                  Object.keys(values).forEach(key => {
+                  Object.keys(values).forEach((key) => {
                     if (key === 'poster') {
                       formData.append('poster', values.poster, values.poster.name);
                     } else {
@@ -128,31 +128,23 @@ const EventCreationForm = () => {
                     }
                   });
 
-                  // Replace with your actual API endpoint
-                  const response = await axios('https://your-api-endpoint.com/events', {
-                    method: 'POST',
-                    body: formData,
-                    // headers will be set automatically for FormData
+                  const response = await axios.post('http://localhost:3000/api/events', formData, {
+                    headers: {
+                      'Content-Type': 'multipart/form-data',
+                    },
                   });
 
-                  if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to create event');
-                  }
-
-                  const result = await response.json();
-                  console.log('Event created:', result);
-                  
+                  console.log('Event created:', response.data);
                   alert('Event created successfully!');
-                  resetForm(); // Reset the form after successful submission
-                  
+                  resetForm();
                 } catch (error) {
                   console.error('Error submitting form:', error);
-                  alert(`Error: ${error.message}`);
+                  alert(`Error: ${error.response?.data?.message || error.message}`);
                 } finally {
                   setSubmitting(false);
                 }
               }}
+
           >
             {({ setFieldValue, isSubmitting, handleSubmit }) => (
               <form onSubmit = {handleSubmit} className="space-y-0" >

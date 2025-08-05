@@ -10,7 +10,7 @@ const FilterBar = ({ selectedFilters, setSelectedFilters }) => {
           <span className="text-sm font-medium text-gray-700">Filters:</span>
         </div>
         
-        <select 
+        {/* <select 
           value={selectedFilters.location}
           onChange={(e) => setSelectedFilters({...selectedFilters, location: e.target.value})}
           className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -20,7 +20,7 @@ const FilterBar = ({ selectedFilters, setSelectedFilters }) => {
           <option value="berkeley">UC Berkeley</option>
           <option value="mit">MIT</option>
           <option value="harvard">Harvard University</option>
-        </select>
+        </select> */}
         
         <select 
           value={selectedFilters.category}
@@ -28,9 +28,9 @@ const FilterBar = ({ selectedFilters, setSelectedFilters }) => {
           className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
         >
           <option value="all">All Categories</option>
-          <option value="technology">Technology</option>
-          <option value="music">Music</option>
-          <option value="business">Business</option>
+          <option value="Drama">Drama</option>
+          <option value="Seminar">Seminar</option>
+          <option value="other">Sports</option>
           <option value="arts">Arts</option>
           <option value="sports">Sports</option>
         </select>
@@ -46,9 +46,9 @@ const FilterBar = ({ selectedFilters, setSelectedFilters }) => {
           <option value="month">This Month</option>
         </select>
         
-        {(selectedFilters.location !== 'all' || selectedFilters.category !== 'all' || selectedFilters.date !== 'all') && (
+        {(selectedFilters.venue !== 'all' || selectedFilters.eventType !== 'all' || selectedFilters.date !== 'all') && (
           <button
-            onClick={() => setSelectedFilters({ location: 'all', category: 'all', date: 'all' })}
+            onClick={() => setSelectedFilters({ venue: 'all', eventType: 'all', date: 'all' })}
             className="px-3 py-1 text-sm text-purple-600 hover:text-purple-700 font-medium"
           >
             Clear Filters

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Calendar, Users, Star } from 'lucide-react';
 import googleLogo from '../assets/google-logo.png';
 import { useNavigate } from 'react-router-dom';
+import { useSignUp, useClerk } from "@clerk/clerk-react";
+
 
 const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,6 +15,11 @@ const SignUp = () => {
     confirmPassword: ''
   });
 
+
+const navigate = useNavigate();
+  const { isLoaded,signUp, setActive } = useSignUp();
+
+
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -20,27 +27,62 @@ const SignUp = () => {
     });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Add password matching validation
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!');
-      return;
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!isLoaded) {
+    console.log("Clerk not loaded yet");
+    return;
+  }
+
+  // Email validation
+  const allowedDomainRegex = /^[a-zA-Z0-9._%+-]+@(?:[a-zA-Z0-9-]+\.)*christuniversity\.in$/;
+  if (!allowedDomainRegex.test(formData.email)) {
+    alert("Please use your official Christ University email.");
+    return;
+  }
+
+  // Password confirmation
+  if (formData.password !== formData.confirmPassword) {
+    alert("Passwords do not match.");
+    return;
+  }
+
+  try {
+    // Start the sign-up process
+    const result = await signUp.create({
+      emailAddress: formData.email,
+      password: formData.password,
+    });
+
+    // Check the result status
+    if (result.status === 'complete') {
+      // This means user is authenticated immediately (no email verification needed)
+      console.log("Sign up complete, setting active session");
+      await setActive({ session: result.createdSessionId });
+      navigate("/"); // Redirect to home page
+    } else {
+      // This means additional steps are needed (like email verification)
+      console.log("Sign up requires additional steps", result);
+      // You might want to navigate to a verification page here
+      // navigate('/verify-email');
     }
-    console.log('Sign up form submitted:', formData);
-    // Add your registration logic here
-  };
-  const Navigate= useNavigate()
+  } catch (err) {
+    console.error("Signup error:", err);
+    // More specific error messages
+    if (err.errors && err.errors[0] && err.errors[0].code === 'form_identifier_exists') {
+      alert("This email is already registered. Please sign in instead.");
+      navigate('/sign-in');
+    } else {
+      alert(err.errors?.[0]?.longMessage || "Signup failed. Please try again.");
+    }
+  }
+};
+
 
   const universities = [
-    'Stanford University',
-    'UC Berkeley',
-    'MIT',
-    'Harvard University',
-    'Caltech',
-    'UCLA',
-    'USC',
-    'Other'
+    'Christ University'
   ];
 
   return (
@@ -273,7 +315,7 @@ const SignUp = () => {
             <p className="text-gray-600">
               Already have an account?{' '}
               <button onClick={()=>{
-                Navigate("/signIn")
+                navigate("/sign-in")
               }} className="text-purple-600 hover:text-purple-700 font-medium">
                 Sign in here
               </button>
@@ -286,3 +328,4 @@ const SignUp = () => {
 };
 
 export default SignUp;
+

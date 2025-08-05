@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Calendar, Users, Star } from 'lucide-react';
 import googleLogo from '../assets/google-logo.png';
 import { useNavigate } from 'react-router-dom';
+import { useSignIn } from "@clerk/clerk-react";
 
 const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -17,11 +18,40 @@ const SignIn = () => {
     });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Sign in form submitted:', formData);
-    // Add your authentication logic here
-  };
+const { signIn, setActive, isLoaded } = useSignIn();
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!isLoaded) return;
+
+  // ✅ Email restriction check
+  const christEmailRegex = /^[a-zA-Z0-9._%+-]+@(btech\.)?christuniversity\.in$/;
+
+if (!christEmailRegex.test(formData.email)) {
+  alert('Please use your official Christ University email.');
+  return;
+}
+
+
+  try {
+    const result = await signIn.create({
+      identifier: formData.email,
+      password: formData.password,
+    });
+
+    if (result.status === "complete") {
+      await setActive({ session: result.createdSessionId });
+      Navigate("/"); // ✅ Redirect on successful login
+    } else {
+      console.log("Additional steps required", result);
+    }
+  } catch (err) {
+    console.error("Login failed:", err.errors);
+    alert(err.errors?.[0]?.message || "Sign in failed");
+  }
+};
+
+
 
   return (
     <div className="h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 flex">
@@ -197,7 +227,7 @@ const SignIn = () => {
             <p className="text-gray-600">
               Don't have an account?{' '}
               <button onClick={()=>{
-                Navigate('/signUp')
+                Navigate('/sign-up')
               }} className="text-purple-600 hover:text-purple-700 font-medium">
                 Sign up here
               </button>
@@ -206,7 +236,9 @@ const SignIn = () => {
         </div>
       </div>
     </div>
+    
   );
 };
 
 export default SignIn;
+

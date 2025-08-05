@@ -51,7 +51,7 @@ const filteredEvents = Array.isArray(events) ? events.filter(event => {
 
     const matchesCategory =
       selectedFilters.eventType === 'all' ||
-      event.catoger.toLowerCase() === selectedFilters.eventType.toLowerCase();
+      event.eventType.toLowerCase() === selectedFilters.eventType.toLowerCase();
 
     // Optional: Add date filter here if needed
 

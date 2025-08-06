@@ -27,6 +27,35 @@ const navigate = useNavigate();
     });
   };
 
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+// Google OAuth handler
+  const handleGoogleSignUp = async () => {
+  if (!isLoaded) return;
+  
+  setIsGoogleLoading(true);
+  try {
+    // Clear auth state
+    localStorage.removeItem("clerk-db-jwt");
+    document.cookie.split(";").forEach(c => {
+      if (c.trim().startsWith("__session=")) {
+        document.cookie = c + "; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+      }
+    });
+    
+    await signUp.authenticateWithRedirect({
+      strategy: "oauth_google",
+      redirectUrl: "/", 
+      redirectUrlComplete: "/"
+    });
+  } catch (err) {
+    console.error("Google sign-up failed:", err);
+    alert(err.errors?.[0]?.message || "Google sign-up failed");
+  } finally {
+    setIsGoogleLoading(false);
+  }
+};
+
 
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -297,14 +326,20 @@ const handleSubmit = async (e) => {
   </div>
 
   <div className="mt-6">
-    <button className="w-full inline-flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-      <img
-        className="w-5 h-5"
-        src={googleLogo}
-        alt="Google logo"
-      />
-      <span className="ml-2">Sign up with Google</span>
-    </button>
+    <button
+  onClick={handleGoogleSignUp}
+  disabled={isGoogleLoading}
+  className="w-full inline-flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+>
+  <img
+    className="w-5 h-5"
+    src={googleLogo}
+    alt="Google logo"
+  />
+  <span className="ml-2">
+    {isGoogleLoading ? "Signing up..." : "Sign up with Google"}
+  </span>
+</button>
   </div>
 </div>
 

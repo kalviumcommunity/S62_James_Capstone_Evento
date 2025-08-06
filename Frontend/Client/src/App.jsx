@@ -5,12 +5,16 @@ import CreateEvent from './pages/CreateEvent';
 import Error404 from './pages/Error404';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
+import SSOCallback from './pages/SSOCallback';
+
+// Add this route
 
 const App = () => {
   return (
     <Routes>
       <Route path="/sign-in" element={<SignInPage/>} />
       <Route path="/sign-up" element={<SignUpPage/>} />
+      <Route path="/sso-callback" element={<SSOCallback />} />
 
       <Route
         path="/"
@@ -42,9 +46,11 @@ const App = () => {
 
 
 
-      {/* <Route path="*" element={<Error404 />} /> */}
+      <Route path="*" element={<Error404 />} />
     </Routes>
   );
 };
 
 export default App;
+
+

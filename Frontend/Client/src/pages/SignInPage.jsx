@@ -6,6 +6,7 @@ import { useSignIn } from "@clerk/clerk-react";
 
 const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -18,7 +19,35 @@ const SignIn = () => {
     });
   };
 
+// Add this to your sign-in handler before authentication
+localStorage.removeItem("clerk-db-jwt");
+document.cookie.split(";").forEach(c => {
+  if (c.trim().startsWith("__session=")) {
+    document.cookie = c + "; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+  }
+});
+
 const { signIn, setActive, isLoaded } = useSignIn();
+
+const handleGoogleSignIn = async () => {
+  if (!isLoaded) return;
+  
+  try {
+    // First clear any existing auth state
+    window.localStorage.removeItem("clerk-db-jwt");
+    
+    // Then initiate Google auth
+    await signIn.authenticateWithRedirect({
+      strategy: "oauth_google",
+      redirectUrl: "/sso-callback",
+      redirectUrlComplete: "/"
+    });
+  } catch (err) {
+    console.error("Google sign-in failed:", err);
+    alert("Authentication failed. Please try again in a new browser window.");
+  }
+};
+
 
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -31,6 +60,8 @@ if (!christEmailRegex.test(formData.email)) {
   alert('Please use your official Christ University email.');
   return;
 }
+
+
 
 
   try {
@@ -209,15 +240,19 @@ if (!christEmailRegex.test(formData.email)) {
 
   <div className="mt-6">
     <button
-      className="w-full inline-flex justify-center py-3 px-4 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-    >
-      <img
-        className="w-5 h-5"
-        src={googleLogo} // 👈 Changed from URL to local import
-        alt="Google logo"
-      />
-      <span className="ml-2">Sign in with Google</span>
-    </button>
+  onClick={handleGoogleSignIn}
+  disabled={isGoogleLoading}
+  className="w-full inline-flex justify-center py-3 px-4 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+>
+  <img
+    className="w-5 h-5"
+    src={googleLogo}
+    alt="Google logo"
+  />
+  <span className="ml-2">
+    {isGoogleLoading ? "Signing in..." : "Sign in with Google"}
+  </span>
+</button>
   </div>
 </div>
 
@@ -232,6 +267,7 @@ if (!christEmailRegex.test(formData.email)) {
                 Sign up here
               </button>
             </p>
+            
           </div>
         </div>
       </div>

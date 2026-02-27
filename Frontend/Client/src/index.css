@@ -1,3 +1,189 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/* ═══════════════════════════════════════════════════
+   EVENTO — Global Responsive Styles
+   ═══════════════════════════════════════════════════ */
+
+/* ─── Auth pages (SignIn / SignUp) ─────────────────── */
+.auth-root {
+    display: flex;
+    height: 100vh;
+    background: #0a0a0a;
+    overflow: hidden;
+}
+
+.auth-left {
+    width: 45%;
+    flex-shrink: 0;
+}
+
+.auth-right {
+    flex: 1;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .auth-root {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .auth-left {
+        display: none !important;
+    }
+
+    .auth-right {
+        width: 100% !important;
+        padding: 40px 24px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        min-height: 100vh;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .auth-left {
+        width: 38%;
+        padding: 32px 32px !important;
+    }
+
+    .auth-right {
+        padding: 28px 36px !important;
+    }
+}
+
+/* ─── Home page ────────────────────────────────────── */
+.home-hero {
+    padding: 52px 60px 56px;
+}
+
+.home-badge {
+    display: block;
+}
+
+.home-search {
+    padding: 36px 60px 0;
+}
+
+.home-grid-section {
+    padding: 24px 60px 80px;
+}
+
+.home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .home-hero {
+        padding: 48px 16px 40px !important;
+        min-height: unset !important;
+    }
+
+    .home-badge {
+        display: none !important;
+    }
+
+    /* hides the ATTENDEE badge card */
+    .home-search {
+        padding: 20px 16px 0 !important;
+    }
+
+    .home-grid-section {
+        padding: 16px 16px 60px !important;
+    }
+
+    .home-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .home-hero {
+        padding: 60px 36px 50px !important;
+    }
+
+    .home-search {
+        padding: 28px 36px 0 !important;
+    }
+
+    .home-grid-section {
+        padding: 20px 36px 80px !important;
+    }
+
+    .home-grid {
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+    }
+}
+
+/* ─── Profile page ─────────────────────────────────── */
+.profile-content {
+    padding: 40px 40px 80px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 900px) {
+    .profile-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .profile-content {
+        padding: 24px 16px 60px !important;
+    }
+}
+
+/* ─── Create / Edit Event ──────────────────────────── */
+@media (max-width: 768px) {
+    .create-form-wrap {
+        padding: 20px 16px 60px !important;
+        max-width: 100% !important;
+    }
+
+    .create-form-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ─── Shared animations ────────────────────────────── */
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes badgeFloat {
+
+    0%,
+    100% {
+        transform: translateY(-50%);
+    }
+
+    50% {
+        transform: translateY(calc(-50% - 10px));
+    }
+}

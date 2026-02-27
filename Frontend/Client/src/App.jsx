@@ -6,14 +6,14 @@ import Error404 from './pages/Error404';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 import SSOCallback from './pages/SSOCallback';
-
-// Add this route
+import UserProfilePage from './pages/UserProfilePage';
+import EditEvent from './pages/EditEvent';
 
 const App = () => {
   return (
     <Routes>
-      <Route path="/sign-in" element={<SignInPage/>} />
-      <Route path="/sign-up" element={<SignUpPage/>} />
+      <Route path="/sign-in" element={<SignInPage />} />
+      <Route path="/sign-up" element={<SignUpPage />} />
       <Route path="/sso-callback" element={<SSOCallback />} />
 
       <Route
@@ -45,6 +45,34 @@ const App = () => {
       />
 
 
+
+      <Route
+        path="/profile"
+        element={
+          <>
+            <SignedIn>
+              <UserProfilePage />
+            </SignedIn>
+            <SignedOut>
+              <RedirectToSignIn />
+            </SignedOut>
+          </>
+        }
+      />
+
+      <Route
+        path="/edit-event/:id"
+        element={
+          <>
+            <SignedIn>
+              <EditEvent />
+            </SignedIn>
+            <SignedOut>
+              <RedirectToSignIn />
+            </SignedOut>
+          </>
+        }
+      />
 
       <Route path="*" element={<Error404 />} />
     </Routes>

@@ -1,62 +1,54 @@
 import React from 'react';
-import { Filter } from 'lucide-react';
 
-const FilterBar = ({ selectedFilters, setSelectedFilters }) => {
-  return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center space-x-2">
-          <Filter className="w-4 h-4 text-gray-500" />
-          <span className="text-sm font-medium text-gray-700">Filters:</span>
-        </div>
-        
-        {/* <select 
-          value={selectedFilters.location}
-          onChange={(e) => setSelectedFilters({...selectedFilters, location: e.target.value})}
-          className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-        >
-          <option value="all">All Locations</option>
-          <option value="stanford">Stanford University</option>
-          <option value="berkeley">UC Berkeley</option>
-          <option value="mit">MIT</option>
-          <option value="harvard">Harvard University</option>
-        </select> */}
-        
-        <select 
-          value={selectedFilters.category}
-          onChange={(e) => setSelectedFilters({...selectedFilters, category: e.target.value})}
-          className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-        >
-          <option value="all">All Categories</option>
-          <option value="Drama">Drama</option>
-          <option value="Seminar">Seminar</option>
-          <option value="other">Sports</option>
-          <option value="arts">Arts</option>
-          <option value="sports">Sports</option>
-        </select>
-        
-        <select 
-          value={selectedFilters.date}
-          onChange={(e) => setSelectedFilters({...selectedFilters, date: e.target.value})}
-          className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-        >
-          <option value="all">Any Time</option>
-          <option value="today">Today</option>
-          <option value="week">This Week</option>
-          <option value="month">This Month</option>
-        </select>
-        
-        {(selectedFilters.venue !== 'all' || selectedFilters.eventType !== 'all' || selectedFilters.date !== 'all') && (
-          <button
-            onClick={() => setSelectedFilters({ venue: 'all', eventType: 'all', date: 'all' })}
-            className="px-3 py-1 text-sm text-purple-600 hover:text-purple-700 font-medium"
-          >
-            Clear Filters
-          </button>
-        )}
-      </div>
-    </div>
-  );
+const selectStyle = {
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  color: '#fff',
+  padding: '12px 16px',
+  borderRadius: '2px',
+  fontSize: '12px',
+  fontFamily: "'Space Mono', monospace",
+  cursor: 'pointer',
+  outline: 'none',
 };
+
+const FilterBar = ({ selectedFilters, setSelectedFilters }) => (
+  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+    <span style={{
+      fontSize: '11px',
+      color: 'rgba(255,255,255,0.3)',
+      fontFamily: "'Space Mono', monospace",
+      letterSpacing: '2px',
+    }}>
+      FILTER:
+    </span>
+
+    <select
+      value={selectedFilters.eventType}
+      onChange={e => setSelectedFilters({ ...selectedFilters, eventType: e.target.value })}
+      style={selectStyle}
+    >
+      <option value="all">All Categories</option>
+      <option value="Drama">Drama</option>
+      <option value="Music">Music</option>
+      <option value="Technology">Technology</option>
+      <option value="Seminar">Seminar</option>
+      <option value="Sports">Sports</option>
+      <option value="Arts">Arts</option>
+      <option value="Other">Other</option>
+    </select>
+
+    <select
+      value={selectedFilters.date}
+      onChange={e => setSelectedFilters({ ...selectedFilters, date: e.target.value })}
+      style={selectStyle}
+    >
+      <option value="all">Any Time</option>
+      <option value="today">Today</option>
+      <option value="week">This Week</option>
+      <option value="month">This Month</option>
+    </select>
+  </div>
+);
 
 export default FilterBar;

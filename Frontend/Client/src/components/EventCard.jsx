@@ -1,75 +1,181 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getFormattedDate, getFormattedTime } from '../utils/dateFormatter';
-import { MapPin, Calendar, Users, Heart, User } from 'lucide-react';
 
-const EventCard = ({ event, showFriends = false }) => {
-  console.log('Rendering EventCard for event:', event.time);
+const CAT_COLORS = {
+  drama: '#a855f7',
+  other: '#6366f1',
+  technology: '#06b6d4',
+  music: '#f59e0b',
+  seminar: '#3b82f6',
+  sports: '#22c55e',
+  arts: '#f97316',
+  tech: '#06b6d4',
+};
+
+const getCatColor = (type = '') => CAT_COLORS[type.toLowerCase()] || '#a855f7';
+
+const EventCard = ({ event, index = 0 }) => {
+  const navigate = useNavigate();
+  const color = getCatColor(event.eventType);
+  const delay = `${index * 0.07}s`;
+
   return (
-    <div className="bg-white max-w-96 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-      <div className="relative">
-        <img src={event.image} alt={event.title} className="w-full h-48 object-cover" />
-        {/* <div className="absolute top-4 right-4 bg-black bg-opacity-50 rounded-full p-2">
-          <Heart className="w-5 h-5 text-white" />
-        </div> */}
-        <div className="absolute bottom-4 left-4">
-          <span className="bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-            {event.eventType}
-          </span>
-        </div>
+    <div
+      style={{
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '4px',
+        overflow: 'hidden',
+        cursor: 'pointer',
+        transition: 'all 0.25s ease',
+        animation: `fadeUp 0.7s ease both`,
+        animationDelay: delay,
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
+        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.boxShadow = '0 20px 60px rgba(0,0,0,0.5)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    >
+      {/* Card image / placeholder */}
+      <div style={{
+        height: '160px',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {event.image ? (
+          <img
+            src={event.image}
+            alt={event.title}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
+          />
+        ) : (
+          <>
+            {/* Grid pattern placeholder */}
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `
+                repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.04) 39px, rgba(255,255,255,0.04) 40px),
+                repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.04) 39px, rgba(255,255,255,0.04) 40px)
+              `,
+            }} />
+            <span style={{
+              fontFamily: "'Space Mono', monospace",
+              fontSize: '11px',
+              color: 'rgba(255,255,255,0.2)',
+              letterSpacing: '2px',
+              position: 'relative',
+              zIndex: 1,
+            }}>
+              {event.title?.toUpperCase().slice(0, 14)}
+            </span>
+          </>
+        )}
       </div>
-      
-      <div className="p-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-2">{event.title}</h3>
-        <p className="text-gray-600 mb-4 line-clamp-2">{event.description}</p>
-        
-        <div className="flex items-center text-gray-500 mb-2">
-          <Calendar className="w-4 h-4 mr-2" />
-          <span className="mr-4">{getFormattedDate(event.date)}</span>
-          <span>{getFormattedTime(event.time)}</span>
+
+      {/* Card body */}
+      <div style={{ padding: '20px 22px 24px' }}>
+        {/* Category badge + Edit button row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <span style={{
+            display: 'inline-block',
+            padding: '3px 10px',
+            background: `${color}22`,
+            border: `1px solid ${color}55`,
+            color: color,
+            borderRadius: '2px',
+            fontSize: '11px',
+            fontFamily: "'Space Mono', monospace",
+            letterSpacing: '1px',
+          }}>
+            {event.eventType?.toUpperCase()}
+          </span>
+
+          {/* Edit button */}
+          <button
+            onClick={e => { e.stopPropagation(); navigate(`/edit-event/${event._id}`); }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.15)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; e.currentTarget.style.color = '#a855f7'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              color: 'rgba(255,255,255,0.4)',
+              borderRadius: '2px',
+              padding: '5px 14px',
+              fontSize: '11px',
+              fontFamily: "'Space Mono', monospace",
+              letterSpacing: '1px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+            }}
+          >
+            ✎ EDIT
+          </button>
         </div>
-        
-        <div className="flex items-center text-gray-500 mb-4">
-          <MapPin className="w-4 h-4 mr-2" />
-          <span>{event.venue}</span>
-        </div>
-        
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-4">
-            {/* <div className="flex items-center text-purple-600">
-              <Users className="w-4 h-4 mr-1" />
-              <span className="text-sm">{event.interested} interested</span>
-            </div> */}
-            {/* <div className="flex items-center text-green-600">
-              <User className="w-4 h-4 mr-1" />
-              <span className="text-sm">{event.attending} attending</span>
-            </div> */}
+
+        {/* Title */}
+        <h3 style={{
+          color: '#fff',
+          margin: '0 0 8px',
+          fontSize: '18px',
+          fontFamily: "'Bebas Neue', sans-serif",
+          letterSpacing: '1px',
+          lineHeight: 1.2,
+        }}>
+          {event.title}
+        </h3>
+
+        {/* Description */}
+        <p style={{
+          color: 'rgba(255,255,255,0.45)',
+          fontSize: '13px',
+          lineHeight: 1.6,
+          margin: '0 0 16px',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          fontFamily: "'DM Sans', sans-serif",
+        }}>
+          {event.description}
+        </p>
+
+        {/* Meta */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px' }}>◷</span>
+            <span style={{
+              color: 'rgba(255,255,255,0.5)',
+              fontSize: '12px',
+              fontFamily: "'Space Mono', monospace",
+            }}>
+              {getFormattedDate(event.date)}{event.time ? ` · ${getFormattedTime(event.time)}` : ''}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px' }}>◎</span>
+            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', fontFamily: "'DM Sans', sans-serif" }}>
+              {event.venue}
+            </span>
           </div>
         </div>
-        
-        {/* {showFriends && event.friendsInterested && event.friendsInterested.length > 0 && (
-          <div className="bg-purple-50 rounded-lg p-3 mb-4">
-            <p className="text-sm text-purple-700 font-medium mb-1">Friends interested:</p>
-            <div className="flex items-center space-x-2">
-              {event.friendsInterested.slice(0, 3).map((friend, idx) => (
-                <div key={idx} className="w-6 h-6 bg-purple-200 rounded-full flex items-center justify-center text-xs font-medium text-purple-700">
-                  {friend[0]}
-                </div>
-              ))}
-              {event.friendsInterested.length > 3 && (
-                <span className="text-xs text-purple-600">+{event.friendsInterested.length - 3} more</span>
-              )}
-            </div>
-          </div>
-        )} */}
-        
-        {/* <div className="flex space-x-3">
-          <button className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-purple-700 transition-colors">
-            Interested
-          </button>
-          <button className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors">
-            Share
-          </button>
-        </div> */}
       </div>
     </div>
   );

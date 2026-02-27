@@ -1,161 +1,208 @@
-// import React from 'react';
-// import { Search, Star, Users, MessageCircle, User, X } from 'lucide-react';
-// import { useNavigate } from 'react-router-dom';
-// import { SignOutButton } from '@clerk/clerk-react';
-
-
-// const Sidebar = ({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }) => {
-//   const navigate = useNavigate();
-
-//   const navigationItems = [
-//     { id: 'discover', label: 'Discover Events', icon: Search },
-//     // { id: 'curated', label: 'For You', icon: Star },
-//     // { id: 'friends', label: 'Friends Activity', icon: Users },
-//     // { id: 'community', label: 'Community', icon: MessageCircle }
-//   ];
-
-//   const handleProfileClick = () => {
-//     navigate("/signIn");
-//   };
-
-//   return (
-//     <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0 lg:z-auto`}>
-//       <div className="flex items-center justify-between p-6 border-b">
-//         <h1 className="text-2xl font-bold text-purple-600">Evento</h1>
-//         <button 
-//           onClick={() => setSidebarOpen(false)}
-//           className="lg:hidden hover:bg-gray-100 p-1 rounded-md transition-colors"
-//         >
-//           <X className="w-6 h-6" />
-//         </button>
-//       </div>
-      
-//       <nav className="mt-6">
-//         <div className="px-6 mb-4">
-//           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Navigation</h2>
-//         </div>
-        
-//         {navigationItems.map((item) => (
-//           <button
-//             key={item.id}
-//             onClick={() => {
-//               setActiveTab(item.id);
-//               setSidebarOpen(false);
-//             }}
-//             className={`w-full flex items-center px-6 py-3 text-left hover:bg-purple-50 transition-colors ${
-//               activeTab === item.id 
-//                 ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' 
-//                 : 'text-gray-700 hover:text-purple-600'
-//             }`}
-//           >
-//             <item.icon className="w-5 h-5 mr-3" />
-//             {item.label}
-//           </button>
-//         ))}
-//       </nav>
-      
-//       <div className="absolute bottom-0 left-0 right-0 p-6 border-t">
-//         <div 
-//           onClick={handleProfileClick}
-//           className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors"
-//         >
-//           <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-//             <User className="w-5 h-5 text-purple-600" />
-//           </div>
-//           <div>
-//             <p className="font-medium text-gray-800">James R Jacob</p>
-//             <p className="text-sm text-gray-500">Christ University</p>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default Sidebar;
-
-
-
 import React from 'react';
-import { Search, Star, Users, MessageCircle, User, X, LogOut } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { SignOutButton } from '@clerk/clerk-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { SignOutButton, useUser } from '@clerk/clerk-react';
 
-const Sidebar = ({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }) => {
+const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useUser();
 
-  const navigationItems = [
-    { id: 'discover', label: 'Discover Events', icon: Search },
-    // { id: 'curated', label: 'For You', icon: Star },
-    // { id: 'friends', label: 'Friends Activity', icon: Users },
-    // { id: 'community', label: 'Community', icon: MessageCircle }
+  const navItems = [
+    { id: 'discover', label: 'Discover Events', icon: '⊹', path: '/' },
+    { id: 'myevents', label: 'My Events', icon: '◈', path: '/myevents' },
+    { id: 'create', label: 'Create Event', icon: '⊕', path: '/eventform' },
   ];
 
-  const handleProfileClick = () => {
-    navigate("/signIn");
-  };
+  const initial = user?.firstName?.[0] || user?.fullName?.[0] || 'U';
+  const displayName = user?.fullName || user?.firstName || 'User';
+  const email = user?.primaryEmailAddress?.emailAddress || '';
 
   return (
-    <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0 lg:z-auto`}>
-      <div className="flex items-center justify-between p-6 border-b">
-        <h1 className="text-2xl font-bold text-purple-600">Evento</h1>
-        <button 
+    <>
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
-          className="lg:hidden hover:bg-gray-100 p-1 rounded-md transition-colors"
-        >
-          <X className="w-6 h-6" />
-        </button>
-      </div>
-      
-      <nav className="mt-6">
-        <div className="px-6 mb-4">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Navigation</h2>
-        </div>
-        
-        {navigationItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => {
-              setActiveTab(item.id);
-              setSidebarOpen(false);
-            }}
-            className={`w-full flex items-center px-6 py-3 text-left hover:bg-purple-50 transition-colors ${
-              activeTab === item.id 
-                ? 'bg-purple-50 text-purple-600 border-r-2 border-purple-600' 
-                : 'text-gray-700 hover:text-purple-600'
-            }`}
-          >
-            <item.icon className="w-5 h-5 mr-3" />
-            {item.label}
-          </button>
-        ))}
-      </nav>
+        />
+      )}
 
-      {/* Sign Out Button */}
-      <div className="px-6 mt-6">
+      <aside
+        style={{
+          width: '260px',
+          flexShrink: 0,
+          borderRight: '1px solid rgba(255,255,255,0.07)',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '32px 24px',
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(20px)',
+          zIndex: 10,
+        }}
+        className={`
+          fixed inset-y-0 left-0
+          transform transition-transform duration-300
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0 lg:sticky lg:top-0
+        `}
+      >
+        {/* Logo */}
+        <div style={{ marginBottom: '48px' }}>
+          <div
+            onClick={() => navigate('/')}
+            style={{
+              fontFamily: "'Bebas Neue', sans-serif",
+              fontSize: '28px',
+              letterSpacing: '3px',
+              cursor: 'pointer',
+              color: '#fff',
+            }}
+          >
+            EVENTO
+          </div>
+          <div style={{
+            width: '32px',
+            height: '2px',
+            background: 'linear-gradient(90deg, #a855f7, transparent)',
+            marginTop: '6px',
+          }} />
+        </div>
+
+        {/* Nav label */}
+        <div style={{
+          fontSize: '10px',
+          letterSpacing: '3px',
+          color: 'rgba(255,255,255,0.3)',
+          marginBottom: '16px',
+          fontFamily: "'Space Mono', monospace",
+        }}>
+          NAVIGATION
+        </div>
+
+        {/* Nav items */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <div
+                key={item.id}
+                onClick={() => { navigate(item.path); setSidebarOpen(false); }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px 12px',
+                  background: isActive ? 'rgba(168,85,247,0.08)' : 'transparent',
+                  borderLeft: isActive ? '2px solid #a855f7' : '2px solid transparent',
+                  cursor: 'pointer',
+                  borderRadius: '2px',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; } }}
+                onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; } }}
+              >
+                <span style={{
+                  color: isActive ? '#a855f7' : 'rgba(255,255,255,0.3)',
+                  fontSize: '14px',
+                }}>
+                  {item.icon}
+                </span>
+                <span style={{
+                  color: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
+                  fontSize: '13px',
+                  fontWeight: isActive ? 500 : 400,
+                }}>
+                  {item.label}
+                </span>
+              </div>
+            );
+          })}
+        </nav>
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* User */}
+        <div
+          onClick={() => navigate('/profile')}
+          style={{
+            borderTop: '1px solid rgba(255,255,255,0.07)',
+            paddingTop: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '12px',
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            background: user?.imageUrl ? 'transparent' : 'linear-gradient(135deg, #a855f7, #6366f1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px',
+            fontWeight: 700,
+            flexShrink: 0,
+            overflow: 'hidden',
+          }}>
+            {user?.imageUrl
+              ? <img src={user.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : initial.toUpperCase()
+            }
+          </div>
+          <div style={{ overflow: 'hidden' }}>
+            <div style={{
+              fontSize: '13px',
+              fontWeight: 500,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              color: '#fff',
+            }}>
+              {displayName.toUpperCase()}
+            </div>
+            <div style={{
+              fontSize: '11px',
+              color: 'rgba(255,255,255,0.35)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>
+              {email}
+            </div>
+          </div>
+        </div>
+
+        {/* Sign out */}
         <SignOutButton>
-          <button className="flex items-center w-full text-left text-red-600 hover:text-red-800 font-medium">
-            <LogOut className="w-5 h-5 mr-3" />
-            Sign Out
+          <button style={{
+            background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: 'rgba(255,255,255,0.4)',
+            padding: '9px 16px',
+            borderRadius: '2px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontFamily: "'Space Mono', monospace",
+            letterSpacing: '1px',
+            textAlign: 'left',
+            width: '100%',
+            transition: 'color 0.2s, border-color 0.2s',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,100,100,0.8)'; e.currentTarget.style.borderColor = 'rgba(255,100,100,0.3)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+          >
+            ↳ SIGN OUT
           </button>
         </SignOutButton>
-      </div>
-
-      <div className="absolute bottom-0 left-0 right-0 p-6 border-t">
-        <div 
-          onClick={handleProfileClick}
-          className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors"
-        >
-          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-            <User className="w-5 h-5 text-purple-600" />
-          </div>
-          <div>
-            <p className="font-medium text-gray-800">James R Jacob</p>
-            <p className="text-sm text-gray-500">Christ University</p>
-          </div>
-        </div>
-      </div>
-    </div>
+      </aside>
+    </>
   );
 };
 

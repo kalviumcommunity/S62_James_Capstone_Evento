@@ -150,7 +150,7 @@ const HomePage = () => {
   const [selectedFilters, setSelectedFilters] = useState({ eventType: 'all', date: 'all' });
 
   useEffect(() => {
-    axios.get('http://localhost:3000/api/events')
+    axios.get('https://s62-james-capstone-evento.onrender.com/api/events')
       .then(r => setEvents(r.data))
       .catch(err => console.error('Error fetching events:', err))
       .finally(() => setLoading(false));

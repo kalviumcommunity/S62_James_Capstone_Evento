@@ -7,20 +7,19 @@ const MyTextInput = ({ label, ...props }) => {
   const [field, meta] = useField(props);
   return (
     <div className="mb-6">
-      <label 
+      <label
         htmlFor={props.id || props.name}
         className="block text-sm font-medium text-gray-700 mb-2"
       >
         {label}
       </label>
-      <input 
-        className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-          meta.touched && meta.error 
-            ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+      <input
+        className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${meta.touched && meta.error
+            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
             : 'border-gray-300'
-        }`}
-        {...field} 
-        {...props} 
+          }`}
+        {...field}
+        {...props}
       />
       {meta.touched && meta.error ? (
         <div className="mt-1 text-sm text-red-600">{meta.error}</div>
@@ -33,20 +32,19 @@ const MyTextArea = ({ label, ...props }) => {
   const [field, meta] = useField(props);
   return (
     <div className="mb-6">
-      <label 
+      <label
         htmlFor={props.id || props.name}
         className="block text-sm font-medium text-gray-700 mb-2"
       >
         {label}
       </label>
-      <textarea 
-        className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-vertical min-h-[120px] ${
-          meta.touched && meta.error 
-            ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+      <textarea
+        className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-vertical min-h-[120px] ${meta.touched && meta.error
+            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
             : 'border-gray-300'
-        }`}
-        {...field} 
-        {...props} 
+          }`}
+        {...field}
+        {...props}
       />
       {meta.touched && meta.error ? (
         <div className="mt-1 text-sm text-red-600">{meta.error}</div>
@@ -59,20 +57,19 @@ const MySelect = ({ label, ...props }) => {
   const [field, meta] = useField(props);
   return (
     <div className="mb-6">
-      <label 
+      <label
         htmlFor={props.id || props.name}
         className="block text-sm font-medium text-gray-700 mb-2"
       >
         {label}
       </label>
-      <select 
-        className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white ${
-          meta.touched && meta.error 
-            ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+      <select
+        className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white ${meta.touched && meta.error
+            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
             : 'border-gray-300'
-        }`}
-        {...field} 
-        {...props} 
+          }`}
+        {...field}
+        {...props}
       />
       {meta.touched && meta.error ? (
         <div className="mt-1 text-sm text-red-600">{meta.error}</div>
@@ -87,7 +84,7 @@ const EventCreationForm = () => {
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">Create New Event</h1>
-          
+
           <Formik
             initialValues={{
               title: '',
@@ -114,89 +111,89 @@ const EventCreationForm = () => {
               tags: Yup.string().required('Required'),
               registrationLink: Yup.string().url('Invalid URL').nullable(),
               poster: Yup.mixed().required('Required').test('fileSize', 'File too large (max 10MB)', value => value && value.size <= 30 * 1024 * 1024)
-              .test('fileType', 'Unsupported format (use JPG/PNG/GIF)', value => 
-              value && ['image/jpeg', 'image/png', 'image/gif'].includes(value.type))
+                .test('fileType', 'Unsupported format (use JPG/PNG/GIF)', value =>
+                  value && ['image/jpeg', 'image/png', 'image/gif'].includes(value.type))
             })}
-              onSubmit={async (values, { setSubmitting, resetForm }) => {
-                try {
-                  const formData = new FormData();
-                  Object.keys(values).forEach((key) => {
-                    if (key === 'poster') {
-                      formData.append('poster', values.poster, values.poster.name);
-                    } else {
-                      formData.append(key, values[key]);
-                    }
-                  });
+            onSubmit={async (values, { setSubmitting, resetForm }) => {
+              try {
+                const formData = new FormData();
+                Object.keys(values).forEach((key) => {
+                  if (key === 'poster') {
+                    formData.append('poster', values.poster, values.poster.name);
+                  } else {
+                    formData.append(key, values[key]);
+                  }
+                });
 
-                  const response = await axios.post('http://localhost:3000/api/events', formData, {
-                    headers: {
-                      'Content-Type': 'multipart/form-data',
-                    },
-                  });
+                const response = await axios.post('https://s62-james-capstone-evento.onrender.com/api/events', formData, {
+                  headers: {
+                    'Content-Type': 'multipart/form-data',
+                  },
+                });
 
-                  console.log('Event created:', response.data);
-                  alert('Event created successfully!');
-                  resetForm();
-                } catch (error) {
-                  console.error('Error submitting form:', error);
-                  alert(`Error: ${error.response?.data?.message || error.message}`);
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
+                console.log('Event created:', response.data);
+                alert('Event created successfully!');
+                resetForm();
+              } catch (error) {
+                console.error('Error submitting form:', error);
+                alert(`Error: ${error.response?.data?.message || error.message}`);
+              } finally {
+                setSubmitting(false);
+              }
+            }}
 
           >
             {({ setFieldValue, isSubmitting, handleSubmit }) => (
-              <form onSubmit = {handleSubmit} className="space-y-0" >
-              
-                <MyTextInput 
-                  label="Event Title" 
-                  name="title" 
-                  type="text" 
-                  placeholder="" 
+              <form onSubmit={handleSubmit} className="space-y-0" >
+
+                <MyTextInput
+                  label="Event Title"
+                  name="title"
+                  type="text"
+                  placeholder=""
                 />
-                
-                <MyTextArea 
-                  label="Description" 
-                  name="description" 
-                  placeholder="What's this event about?" 
+
+                <MyTextArea
+                  label="Description"
+                  name="description"
+                  placeholder="What's this event about?"
                 />
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <MyTextInput 
-                    label="Date" 
-                    name="date" 
-                    type="date" 
+                  <MyTextInput
+                    label="Date"
+                    name="date"
+                    type="date"
                   />
-                  <MyTextInput 
-                    label="Time" 
-                    name="time" 
-                    type="time" 
+                  <MyTextInput
+                    label="Time"
+                    name="time"
+                    type="time"
                   />
                 </div>
-                
-                <MyTextInput 
-                  label="Venue" 
-                  name="venue" 
-                  type="text" 
-                  placeholder="" 
+
+                <MyTextInput
+                  label="Venue"
+                  name="venue"
+                  type="text"
+                  placeholder=""
                 />
-                
+
                 <div className="grid grid-cols-2 md:grid-cols-2 gap-6 pt-3 mb-6">
-                  <MyTextInput 
-                    label="Organizer*" 
-                    name="organizer" 
-                    type="text" 
-                    placeholder="" 
+                  <MyTextInput
+                    label="Organizer*"
+                    name="organizer"
+                    type="text"
+                    placeholder=""
                   />
-                  <MyTextInput 
-                    label="Contact Info" 
-                    name="contact" 
-                    type="text" 
-                    placeholder="" 
+                  <MyTextInput
+                    label="Contact Info"
+                    name="contact"
+                    type="text"
+                    placeholder=""
                   />
                 </div>
-                
+
                 <MySelect label="Event Type" name="eventType">
                   <option value="">Select type</option>
                   <option value="Drama">Drama</option>
@@ -206,24 +203,24 @@ const EventCreationForm = () => {
                   <option value="Other">Other</option>
                 </MySelect>
 
-              <div className="pt-3"></div>
-                <MyTextInput 
-                  label="Tags (comma-separated)" 
-                  name="tags" 
-                  type="text" 
-                  placeholder="" 
+                <div className="pt-3"></div>
+                <MyTextInput
+                  label="Tags (comma-separated)"
+                  name="tags"
+                  type="text"
+                  placeholder=""
                 />
 
-              <div className="pt-3"></div>
-                <MyTextInput 
-                  label="Registration Link" 
-                  name="registrationLink" 
-                  type="url" 
-                  placeholder="https://..." 
+                <div className="pt-3"></div>
+                <MyTextInput
+                  label="Registration Link"
+                  name="registrationLink"
+                  type="url"
+                  placeholder="https://..."
                 />
 
                 <div className="mb-8 pt-3 pb-4" >
-                  <label 
+                  <label
                     htmlFor="poster"
                     className="block text-sm font-medium text-gray-700 mb-2"
                   >
@@ -269,8 +266,8 @@ const EventCreationForm = () => {
                   </div>
                 </div>
 
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={isSubmitting}
                   // onClick={handleSubmit}
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed"

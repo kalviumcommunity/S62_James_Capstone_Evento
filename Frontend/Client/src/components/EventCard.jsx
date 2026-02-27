@@ -1,6 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getFormattedDate, getFormattedTime } from '../utils/dateFormatter';
+
+// Inline date/time formatters (utils/dateFormatter.js removed)
+const getFormattedDate = (dateStr) =>
+  new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+const getFormattedTime = (timeStr) => {
+  if (!timeStr) return '';
+  const [hours, minutes] = timeStr.split(':');
+  const d = new Date(); d.setHours(hours, minutes, 0);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
 
 const CAT_COLORS = {
   drama: '#a855f7',

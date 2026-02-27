@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser, useClerk, SignOutButton } from '@clerk/clerk-react';
+import { useAuth } from '../context/AuthContext';
 
 /* ─── Hero Dot Canvas ─────────────────────────────────────────────────── */
 const HeroCanvas = () => {
@@ -49,31 +49,35 @@ const HeroCanvas = () => {
 /* ─── UserProfilePage ─────────────────────────────────────────────────── */
 const UserProfilePage = () => {
     const navigate = useNavigate();
-    const { user } = useUser();
-    const { openUserProfile } = useClerk();
+    const { user, signOut } = useAuth();
     const [activeTab, setActiveTab] = useState('overview');
 
-    const displayName = user?.fullName || user?.firstName || 'User';
-    const email = user?.primaryEmailAddress?.emailAddress || '';
+    // Firebase user fields
+    const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
+    const email = user?.email || '';
+    const photoURL = user?.photoURL || null;
     const initial = displayName[0]?.toUpperCase() || 'U';
-    const memberSince = user?.createdAt ? new Date(user.createdAt).toLocaleString('default', { month: 'long', year: 'numeric' }) : '—';
-    const lastSignIn = user?.lastSignInAt ? new Date(user.lastSignInAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
-
+    const memberSince = user?.metadata?.creationTime
+        ? new Date(user.metadata.creationTime).toLocaleString('default', { month: 'long', year: 'numeric' })
+        : '—';
+    const lastSignIn = user?.metadata?.lastSignInTime
+        ? new Date(user.metadata.lastSignInTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : '—';
     const isChrist = email.includes('christuniversity.in');
+
+    const handleSignOut = async () => { await signOut(); navigate('/sign-in'); };
 
     const cardStyle = { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '4px', padding: '28px' };
     const sectionHeaderStyle = { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.06)' };
     const fieldLabelStyle = { fontSize: '10px', letterSpacing: '3px', color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace", marginBottom: '6px' };
     const fieldValueStyle = { fontSize: '14px', color: '#fff', fontWeight: 500 };
     const dividerStyle = { height: '1px', background: 'rgba(255,255,255,0.05)' };
-
     const actionBtnStyle = {
         width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
         color: '#fff', padding: '13px 16px', borderRadius: '2px', cursor: 'pointer',
         fontSize: '12px', fontFamily: "'Space Mono', monospace", letterSpacing: '1px',
         textAlign: 'left', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     };
-
     const inputStyle = {
         width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
         color: '#fff', padding: '12px 16px', borderRadius: '2px', fontSize: '13px',
@@ -110,15 +114,14 @@ const UserProfilePage = () => {
                     <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '22px', letterSpacing: '3px', color: '#fff' }}>EVENTO</div>
                 </div>
 
-                <SignOutButton>
-                    <button
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,80,80,0.5)'; e.currentTarget.style.color = 'rgba(255,100,100,0.9)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,80,80,0.2)'; e.currentTarget.style.color = 'rgba(255,100,100,0.6)'; }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.6)', padding: '7px 16px', borderRadius: '2px', cursor: 'pointer', fontSize: '11px', fontFamily: "'Space Mono', monospace", letterSpacing: '1px', transition: 'all 0.2s' }}
-                    >
-                        ↳ SIGN OUT
-                    </button>
-                </SignOutButton>
+                <button
+                    onClick={handleSignOut}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,80,80,0.5)'; e.currentTarget.style.color = 'rgba(255,100,100,0.9)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,80,80,0.2)'; e.currentTarget.style.color = 'rgba(255,100,100,0.6)'; }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.6)', padding: '7px 16px', borderRadius: '2px', cursor: 'pointer', fontSize: '11px', fontFamily: "'Space Mono', monospace", letterSpacing: '1px', transition: 'all 0.2s' }}
+                >
+                    ↳ SIGN OUT
+                </button>
             </nav>
 
             <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '40px 40px 80px' }}>
@@ -126,18 +129,16 @@ const UserProfilePage = () => {
                 {/* ── HERO CARD ──────────────────────────────────────────── */}
                 <div style={{ position: 'relative', marginBottom: '32px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden', animation: 'fadeUp 0.6s ease both', animationDelay: '0.05s' }}>
                     <HeroCanvas />
-                    {/* Purple gradient overlay */}
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(168,85,247,0.12) 0%, rgba(99,102,241,0.08) 50%, transparent 100%)', pointerEvents: 'none', zIndex: 1 }} />
-                    {/* Grid lines */}
                     <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(255,255,255,0.03) 59px,rgba(255,255,255,0.03) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,255,255,0.03) 59px,rgba(255,255,255,0.03) 60px)', pointerEvents: 'none', zIndex: 1 }} />
 
                     <div style={{ position: 'relative', zIndex: 2, padding: '40px 40px 32px' }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '24px', flexWrap: 'wrap' }}>
 
                             {/* Avatar */}
-                            <div style={{ width: '80px', height: '80px', borderRadius: '4px', background: user?.imageUrl ? 'transparent' : 'linear-gradient(135deg, #a855f7, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Bebas Neue', sans-serif", fontSize: '36px', letterSpacing: '2px', flexShrink: 0, border: '1px solid rgba(255,255,255,0.15)', overflow: 'hidden' }}>
-                                {user?.imageUrl
-                                    ? <img src={user.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <div style={{ width: '80px', height: '80px', borderRadius: '4px', background: photoURL ? 'transparent' : 'linear-gradient(135deg, #a855f7, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Bebas Neue', sans-serif", fontSize: '36px', letterSpacing: '2px', flexShrink: 0, border: '1px solid rgba(255,255,255,0.15)', overflow: 'hidden' }}>
+                                {photoURL
+                                    ? <img src={photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     : initial
                                 }
                             </div>
@@ -165,16 +166,6 @@ const UserProfilePage = () => {
                                     </span>
                                 </div>
                             </div>
-
-                            {/* Edit button */}
-                            <button
-                                onClick={() => openUserProfile()}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
-                                style={{ background: 'rgba(255,255,255,0.06)', color: '#fff', border: '1px solid rgba(255,255,255,0.12)', padding: '12px 24px', borderRadius: '2px', cursor: 'pointer', fontSize: '11px', fontFamily: "'Space Mono', monospace", letterSpacing: '2px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}
-                            >
-                                ✎ EDIT PROFILE
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -277,10 +268,9 @@ const UserProfilePage = () => {
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 {[
-                                    { icon: '◈', label: 'MY REGISTERED EVENTS', path: '/myevents' },
                                     { icon: '⊕', label: 'CREATE NEW EVENT', path: '/eventform' },
                                     { icon: '✦', label: 'DISCOVER EVENTS', path: '/' },
-                                    { icon: '✎', label: 'EDIT PROFILE', action: () => openUserProfile() },
+                                    { icon: '↳', label: 'SIGN OUT', action: handleSignOut },
                                 ].map((item, i) => (
                                     <button
                                         key={i}
@@ -312,26 +302,20 @@ const UserProfilePage = () => {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <div>
                                     <label style={{ ...fieldLabelStyle, display: 'block', marginBottom: '8px' }}>DISPLAY NAME</label>
-                                    <input defaultValue={displayName.toUpperCase()} style={inputStyle}
-                                        onFocus={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'; }}
-                                        onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }} />
+                                    <input defaultValue={displayName} readOnly style={{ ...inputStyle, opacity: 0.7, cursor: 'not-allowed' }} />
                                 </div>
                                 <div>
                                     <label style={{ ...fieldLabelStyle, display: 'block', marginBottom: '8px' }}>EMAIL ADDRESS</label>
                                     <input defaultValue={email} readOnly style={{ ...inputStyle, opacity: 0.6, cursor: 'not-allowed' }} />
                                 </div>
-                                <div>
-                                    <label style={{ ...fieldLabelStyle, display: 'block', marginBottom: '8px' }}>INSTITUTION</label>
-                                    <input defaultValue={isChrist ? 'Christ University' : ''} readOnly style={{ ...inputStyle, opacity: 0.6, cursor: 'not-allowed' }} />
-                                </div>
-                                <div style={{ paddingTop: '8px' }}>
+                                <div style={{ paddingTop: '8px', display: 'flex', gap: '10px' }}>
                                     <button
-                                        onClick={() => openUserProfile()}
-                                        onMouseEnter={e => { e.currentTarget.style.background = '#e8e8e8'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
-                                        style={{ background: '#fff', color: '#000', border: 'none', padding: '13px 28px', fontFamily: "'Space Mono', monospace", fontSize: '11px', letterSpacing: '2px', fontWeight: 700, cursor: 'pointer', borderRadius: '2px', transition: 'background 0.2s' }}
+                                        onClick={handleSignOut}
+                                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,80,80,0.5)'; e.currentTarget.style.color = 'rgba(255,100,100,0.9)'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,80,80,0.2)'; e.currentTarget.style.color = 'rgba(255,100,100,0.6)'; }}
+                                        style={{ background: 'transparent', color: 'rgba(255,100,100,0.6)', border: '1px solid rgba(255,80,80,0.2)', padding: '12px 24px', borderRadius: '2px', cursor: 'pointer', fontSize: '11px', fontFamily: "'Space Mono', monospace", letterSpacing: '2px', transition: 'all 0.2s' }}
                                     >
-                                        MANAGE IN CLERK →
+                                        ↳ SIGN OUT
                                     </button>
                                 </div>
                             </div>
@@ -344,7 +328,7 @@ const UserProfilePage = () => {
                                 <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '11px', letterSpacing: '3px', color: 'rgba(255,100,100,0.6)' }}>DANGER ZONE</span>
                             </div>
                             <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', marginBottom: '16px', lineHeight: 1.6 }}>
-                                Deleting your account is permanent and cannot be undone. All your data will be removed.
+                                Deleting your account is permanent and cannot be undone.
                             </p>
                             <button
                                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,50,50,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,80,80,0.5)'; }}

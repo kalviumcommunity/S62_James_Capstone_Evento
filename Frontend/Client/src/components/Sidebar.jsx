@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -6,6 +6,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const [collapsed, setCollapsed] = useState(false);
 
   const navItems = [
     { id: 'discover', label: 'Discover Events', icon: '⊹', path: '/' },
@@ -13,201 +14,203 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     { id: 'create', label: 'Create Event', icon: '⊕', path: '/eventform' },
   ];
 
-  // Firebase user fields
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
   const email = user?.email || '';
   const photoURL = user?.photoURL || null;
   const initial = displayName[0]?.toUpperCase() || 'U';
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/sign-in');
-  };
+  const handleSignOut = async () => { await signOut(); navigate('/sign-in'); };
 
   return (
     <>
-      {/* Mobile overlay */}
+      <style>{`
+        /* ── Desktop: sticky, width collapses ── */
+        .sidebar-aside {
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          flex-shrink: 0;
+          overflow: hidden;
+          width: 256px;
+          border-right: 1px solid rgba(255,255,255,0.07);
+          background: rgba(0,0,0,0.5);
+          backdrop-filter: blur(20px);
+          z-index: 20;
+          transition: width 0.32s cubic-bezier(.4,0,.2,1),
+                      border-color 0.32s ease;
+        }
+        .sidebar-aside.collapsed {
+          width: 0;
+          border-color: transparent;
+        }
+        /* Inner content has fixed min-width so it never reflows during animation */
+        .sb-inner {
+          min-width: 256px;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          padding: 0 24px 28px;
+        }
+        /* Hamburger icon lines */
+        .hb-line {
+          display: block; width: 13px; height: 1.5px;
+          background: rgba(255,255,255,0.5);
+          transition: transform 0.25s ease, opacity 0.2s ease, width 0.2s ease;
+          transform-origin: center;
+        }
+        .hb-btn.is-x .hb-line:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+        .hb-btn.is-x .hb-line:nth-child(2) { opacity: 0; width: 0; }
+        .hb-btn.is-x .hb-line:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+        /* Reopen tab */
+        .reopen-tab {
+          position: fixed; top: 20px; left: 0;
+          width: 34px; height: 34px;
+          background: rgba(10,10,10,0.9);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-left: none;
+          border-radius: 0 4px 4px 0;
+          display: flex; flex-direction: column;
+          align-items: center; justify-content: center; gap: 4px;
+          cursor: pointer; z-index: 200;
+          opacity: 0; pointer-events: none;
+          transition: opacity 0.2s ease, background 0.2s;
+        }
+        .reopen-tab.visible { opacity: 1; pointer-events: all; }
+        .reopen-tab:hover { background: rgba(30,30,30,0.95); }
+        .reopen-tab span { display: block; width: 13px; height: 1.5px; background: rgba(255,255,255,0.5); }
+        /* Nav items */
+        .sb-nav-item {
+          display:flex; align-items:center; gap:10px; padding:10px 12px;
+          border-left:2px solid transparent; cursor:pointer; border-radius:2px;
+          transition: background 0.15s, border-color 0.15s;
+        }
+        .sb-nav-item:hover { background: rgba(255,255,255,0.04); border-left-color: rgba(255,255,255,0.12); }
+        .sb-nav-item.active { background: rgba(168,85,247,0.08); border-left-color: #a855f7; }
+
+        /* ── Mobile: fixed overlay ── */
+        @media (max-width: 1023px) {
+          .sidebar-aside {
+            position: fixed !important;
+            top: 0; left: 0; bottom: 0;
+            width: 256px !important;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease !important;
+            border-right: 1px solid rgba(255,255,255,0.07) !important;
+          }
+          .sidebar-aside.mobile-open {
+            transform: translateX(0);
+          }
+        }
+      `}</style>
+
+      {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 40 }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      <aside
-        style={{
-          width: '260px',
-          flexShrink: 0,
-          borderRight: '1px solid rgba(255,255,255,0.07)',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '32px 24px',
-          position: 'sticky',
-          top: 0,
-          height: '100vh',
-          background: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(20px)',
-          zIndex: 10,
+      {/* Reopen tab — shows when sidebar is collapsed (desktop) or closed (mobile) */}
+      <div
+        className={`reopen-tab${(collapsed || !sidebarOpen) && window.innerWidth < 1024 ? ' visible' : ''}${collapsed && window.innerWidth >= 1024 ? ' visible' : ''}`}
+        onClick={() => {
+          if (window.innerWidth >= 1024) setCollapsed(false);
+          else setSidebarOpen(true);
         }}
-        className={`
-          fixed inset-y-0 left-0
-          transform transition-transform duration-300
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0 lg:sticky lg:top-0
-        `}
+        title="Open menu"
       >
-        {/* Logo */}
-        <div style={{ marginBottom: '48px' }}>
-          <div
-            onClick={() => navigate('/')}
-            style={{
-              fontFamily: "'Bebas Neue', sans-serif",
-              fontSize: '28px',
-              letterSpacing: '3px',
-              cursor: 'pointer',
-              color: '#fff',
-            }}
-          >
-            EVENTO
-          </div>
-          <div style={{
-            width: '32px',
-            height: '2px',
-            background: 'linear-gradient(90deg, #a855f7, transparent)',
-            marginTop: '6px',
-          }} />
-        </div>
+        <span /><span /><span />
+      </div>
 
-        {/* Nav label */}
-        <div style={{
-          fontSize: '10px',
-          letterSpacing: '3px',
-          color: 'rgba(255,255,255,0.3)',
-          marginBottom: '16px',
-          fontFamily: "'Space Mono', monospace",
-        }}>
-          NAVIGATION
-        </div>
+      <aside className={`sidebar-aside${collapsed ? ' collapsed' : ''}${sidebarOpen ? ' mobile-open' : ''}`}>
+        <div className="sb-inner">
 
-        {/* Nav items */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <div
-                key={item.id}
-                onClick={() => { navigate(item.path); setSidebarOpen(false); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '10px 12px',
-                  background: isActive ? 'rgba(168,85,247,0.08)' : 'transparent',
-                  borderLeft: isActive ? '2px solid #a855f7' : '2px solid transparent',
-                  cursor: 'pointer',
-                  borderRadius: '2px',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; } }}
-                onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; } }}
-              >
-                <span style={{
-                  color: isActive ? '#a855f7' : 'rgba(255,255,255,0.3)',
-                  fontSize: '14px',
-                }}>
-                  {item.icon}
-                </span>
-                <span style={{
-                  color: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
-                  fontSize: '13px',
-                  fontWeight: isActive ? 500 : 400,
-                }}>
-                  {item.label}
-                </span>
+          {/* Logo + Hamburger row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '22px 0 0', marginBottom: '40px' }}>
+            <div>
+              <div onClick={() => navigate('/')} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '26px', letterSpacing: '3px', cursor: 'pointer', color: '#fff' }}>
+                EVENTO
               </div>
-            );
-          })}
-        </nav>
-
-        {/* Spacer */}
-        <div style={{ flex: 1 }} />
-
-        {/* User card */}
-        <div
-          onClick={() => navigate('/profile')}
-          style={{
-            borderTop: '1px solid rgba(255,255,255,0.07)',
-            paddingTop: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            marginBottom: '12px',
-            cursor: 'pointer',
-          }}
-        >
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            background: photoURL ? 'transparent' : 'linear-gradient(135deg, #a855f7, #6366f1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '14px',
-            fontWeight: 700,
-            flexShrink: 0,
-            overflow: 'hidden',
-          }}>
-            {photoURL
-              ? <img src={photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : initial
-            }
-          </div>
-          <div style={{ overflow: 'hidden' }}>
-            <div style={{
-              fontSize: '13px',
-              fontWeight: 500,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              color: '#fff',
-            }}>
-              {displayName.toUpperCase()}
+              <div style={{ width: '28px', height: '2px', background: 'linear-gradient(90deg, #a855f7, transparent)', marginTop: '5px' }} />
             </div>
-            <div style={{
-              fontSize: '11px',
-              color: 'rgba(255,255,255,0.35)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}>
-              {email}
+
+            {/* Hamburger — desktop collapses sidebar, mobile closes it */}
+            <button
+              className={`hb-btn is-x`}
+              onClick={() => {
+                if (window.innerWidth >= 1024) setCollapsed(true);
+                else setSidebarOpen(false);
+              }}
+              style={{
+                width: '32px', height: '32px', background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px',
+                cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: '4.5px',
+                flexShrink: 0, transition: 'background 0.2s, border-color 0.2s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              aria-label="Close menu"
+            >
+              <span className="hb-line" />
+              <span className="hb-line" />
+              <span className="hb-line" />
+            </button>
+          </div>
+
+          {/* Nav label */}
+          <div style={{ fontSize: '10px', letterSpacing: '3px', color: 'rgba(255,255,255,0.3)', marginBottom: '14px', fontFamily: "'Space Mono', monospace" }}>
+            NAVIGATION
+          </div>
+
+          {/* Nav items */}
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {navItems.map(item => {
+              const isActive = location.pathname === item.path;
+              return (
+                <div
+                  key={item.id}
+                  className={`sb-nav-item${isActive ? ' active' : ''}`}
+                  onClick={() => { navigate(item.path); setSidebarOpen(false); }}
+                >
+                  <span style={{ color: isActive ? '#a855f7' : 'rgba(255,255,255,0.3)', fontSize: '14px' }}>{item.icon}</span>
+                  <span style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.4)', fontSize: '13px', fontWeight: isActive ? 500 : 400 }}>{item.label}</span>
+                </div>
+              );
+            })}
+          </nav>
+
+          <div style={{ flex: 1 }} />
+
+          {/* User card */}
+          <div
+            onClick={() => navigate('/profile')}
+            style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: '18px', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', cursor: 'pointer' }}
+          >
+            <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: photoURL ? 'transparent' : 'linear-gradient(135deg, #a855f7, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, flexShrink: 0, overflow: 'hidden' }}>
+              {photoURL ? <img src={photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initial}
+            </div>
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#fff' }}>
+                {displayName.toUpperCase()}
+              </div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {email}
+              </div>
             </div>
           </div>
+
+          {/* Sign out */}
+          <button
+            onClick={handleSignOut}
+            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', padding: '9px 16px', borderRadius: '2px', cursor: 'pointer', fontSize: '12px', fontFamily: "'Space Mono', monospace", letterSpacing: '1px', textAlign: 'left', width: '100%', transition: 'all 0.2s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,80,80,0.35)'; e.currentTarget.style.color = 'rgba(255,100,100,0.7)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
+          >
+            ↳ SIGN OUT
+          </button>
         </div>
-
-        {/* Sign out */}
-        <button
-          onClick={handleSignOut}
-          style={{
-            background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.1)',
-            color: 'rgba(255,255,255,0.4)',
-            padding: '9px 16px',
-            borderRadius: '2px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontFamily: "'Space Mono', monospace",
-            letterSpacing: '1px',
-            textAlign: 'left',
-            width: '100%',
-            transition: 'color 0.2s, border-color 0.2s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,100,100,0.8)'; e.currentTarget.style.borderColor = 'rgba(255,100,100,0.3)'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-        >
-          ↳ SIGN OUT
-        </button>
       </aside>
     </>
   );

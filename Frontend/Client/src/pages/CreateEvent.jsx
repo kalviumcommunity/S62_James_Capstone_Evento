@@ -140,7 +140,7 @@ const CreateEvent = () => {
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       if (poster) fd.append('poster', poster, poster.name);
 
-      await axios.post('http://localhost:3000/api/events', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await axios.post('https://s62-james-capstone-evento.onrender.com/api/events', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       localStorage.removeItem(DRAFT_KEY);
       setHasDraft(false);
       showToast('success', 'Event created successfully!');

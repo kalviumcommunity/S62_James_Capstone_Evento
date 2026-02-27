@@ -83,7 +83,7 @@ const EditEvent = () => {
     useEffect(() => {
         const fetchEvent = async () => {
             try {
-                const { data } = await axios.get(`http://localhost:3000/api/events`);
+                const { data } = await axios.get(`https://s62-james-capstone-evento.onrender.com/api/events`);
                 const ev = data.find(e => e._id === id);
                 if (!ev) { showToast('error', 'Event not found.'); setIsLoading(false); return; }
                 setForm({
@@ -117,7 +117,7 @@ const EditEvent = () => {
         setIsSubmitting(true);
         try {
             const payload = { ...form, tags: form.tags };
-            await axios.put(`http://localhost:3000/api/events/${id}`, payload);
+            await axios.put(`https://s62-james-capstone-evento.onrender.com/api/events/${id}`, payload);
             showToast('success', 'Event updated successfully!');
             setTimeout(() => navigate('/'), 1800);
         } catch (err) {

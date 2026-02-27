@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { SignOutButton, useUser } from '@clerk/clerk-react';
+import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useUser();
+  const { user, signOut } = useAuth();
 
   const navItems = [
     { id: 'discover', label: 'Discover Events', icon: '⊹', path: '/' },
@@ -13,9 +13,16 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     { id: 'create', label: 'Create Event', icon: '⊕', path: '/eventform' },
   ];
 
-  const initial = user?.firstName?.[0] || user?.fullName?.[0] || 'U';
-  const displayName = user?.fullName || user?.firstName || 'User';
-  const email = user?.primaryEmailAddress?.emailAddress || '';
+  // Firebase user fields
+  const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
+  const email = user?.email || '';
+  const photoURL = user?.photoURL || null;
+  const initial = displayName[0]?.toUpperCase() || 'U';
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/sign-in');
+  };
 
   return (
     <>
@@ -125,7 +132,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         {/* Spacer */}
         <div style={{ flex: 1 }} />
 
-        {/* User */}
+        {/* User card */}
         <div
           onClick={() => navigate('/profile')}
           style={{
@@ -142,7 +149,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             width: '36px',
             height: '36px',
             borderRadius: '50%',
-            background: user?.imageUrl ? 'transparent' : 'linear-gradient(135deg, #a855f7, #6366f1)',
+            background: photoURL ? 'transparent' : 'linear-gradient(135deg, #a855f7, #6366f1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -151,9 +158,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             flexShrink: 0,
             overflow: 'hidden',
           }}>
-            {user?.imageUrl
-              ? <img src={user.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : initial.toUpperCase()
+            {photoURL
+              ? <img src={photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : initial
             }
           </div>
           <div style={{ overflow: 'hidden' }}>
@@ -180,8 +187,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         </div>
 
         {/* Sign out */}
-        <SignOutButton>
-          <button style={{
+        <button
+          onClick={handleSignOut}
+          style={{
             background: 'transparent',
             border: '1px solid rgba(255,255,255,0.1)',
             color: 'rgba(255,255,255,0.4)',
@@ -195,12 +203,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             width: '100%',
             transition: 'color 0.2s, border-color 0.2s',
           }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,100,100,0.8)'; e.currentTarget.style.borderColor = 'rgba(255,100,100,0.3)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-          >
-            ↳ SIGN OUT
-          </button>
-        </SignOutButton>
+          onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,100,100,0.8)'; e.currentTarget.style.borderColor = 'rgba(255,100,100,0.3)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+        >
+          ↳ SIGN OUT
+        </button>
       </aside>
     </>
   );

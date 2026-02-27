@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useSignIn } from '@clerk/clerk-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
 
 /* ─── Dot Canvas (left panel) ─────────────────────────────────────────── */
 const DotCanvas = () => {
@@ -87,14 +88,15 @@ const DotCanvas = () => {
 /* ─── Main Sign In Component ──────────────────────────────────────────── */
 const SignIn = () => {
   const navigate = useNavigate();
-  const { signIn, setActive, isLoaded } = useSignIn();
+  const location = useLocation();
 
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [remember, setRemember] = useState(false);
-  const [error, setError] = useState('');
+  const urlError = new URLSearchParams(location.search).get('error');
+  const [error, setError] = useState(urlError ? decodeURIComponent(urlError) : '');
 
   const handleInputChange = e => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -102,41 +104,34 @@ const SignIn = () => {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!isLoaded) return;
     setIsGoogleLoading(true);
     try {
-      window.localStorage.removeItem('clerk-db-jwt');
-      await signIn.authenticateWithRedirect({
-        strategy: 'oauth_google',
-        redirectUrl: '/sso-callback',
-        redirectUrlComplete: '/',
-      });
+      await signInWithPopup(auth, googleProvider);
+      navigate('/');
     } catch (err) {
       console.error('Google sign-in failed:', err);
-      setError('Google sign-in failed. Please try again.');
+      if (err.code === 'auth/popup-closed-by-user') setError('Sign-in cancelled.');
+      else setError('Google sign-in failed. Please try again.');
       setIsGoogleLoading(false);
     }
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
-    if (!isLoaded) return;
-
-    const christEmailRegex = /^[a-zA-Z0-9._%+-]+@(btech\.)?christuniversity\.in$/;
-    if (!christEmailRegex.test(formData.email)) {
-      setError('Please use your official Christ University email.');
-      return;
-    }
-
+    if (!formData.email) { setError('Please enter your email address.'); return; }
+    if (!formData.password) { setError('Please enter your password.'); return; }
     setIsLoading(true);
     try {
-      const result = await signIn.create({ identifier: formData.email, password: formData.password });
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId });
-        navigate('/');
-      }
+      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      navigate('/');
     } catch (err) {
-      setError(err.errors?.[0]?.message || 'Sign in failed. Please try again.');
+      const code = err.code;
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') setError('Incorrect email or password. Please try again.');
+      else if (code === 'auth/user-not-found') setError('No account found with this email. Please sign up first.');
+      else if (code === 'auth/too-many-requests') setError('Too many attempts. Please wait a moment and try again.');
+      else if (code === 'auth/invalid-email') setError('Please enter a valid email address.');
+      else if (code === 'auth/user-disabled') setError('This account has been disabled. Contact support.');
+      else setError('Sign in failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

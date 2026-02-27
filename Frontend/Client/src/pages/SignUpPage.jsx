@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSignUp } from '@clerk/clerk-react';
+import { createUserWithEmailAndPassword, updateProfile, signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
 
 /* ─── Dot Canvas ──────────────────────────────────────────────────────── */
 const DotCanvas = () => {
@@ -50,7 +51,6 @@ const DotCanvas = () => {
 /* ─── SignUp ──────────────────────────────────────────────────────────── */
 const SignUp = () => {
   const navigate = useNavigate();
-  const { isLoaded, signUp, setActive } = useSignUp();
   const [formData, setFormData] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -60,30 +60,33 @@ const SignUp = () => {
   const handleChange = e => { setFormData({ ...formData, [e.target.name]: e.target.value }); setError(''); };
 
   const handleGoogleSignUp = async () => {
-    if (!isLoaded) return;
     setIsGoogleLoading(true);
     try {
-      localStorage.removeItem('clerk-db-jwt');
-      await signUp.authenticateWithRedirect({ strategy: 'oauth_google', redirectUrl: '/sso-callback', redirectUrlComplete: '/' });
+      await signInWithPopup(auth, googleProvider);
+      navigate('/');
     } catch (err) {
-      setError(err.errors?.[0]?.message || 'Google sign-up failed.');
+      if (err.code === 'auth/popup-closed-by-user') setError('Sign-up cancelled.');
+      else setError('Google sign-up failed. Please try again.');
       setIsGoogleLoading(false);
     }
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
-    if (!isLoaded) return;
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@(?:[a-zA-Z0-9-]+\.)*christuniversity\.in$/;
-    if (!emailRegex.test(formData.email)) { setError('Please use your official Christ University email.'); return; }
+    if (!formData.email) { setError('Please enter your email address.'); return; }
+    if (!formData.password) { setError('Please enter a password.'); return; }
     if (formData.password !== formData.confirmPassword) { setError('Passwords do not match.'); return; }
     setIsLoading(true);
     try {
-      const result = await signUp.create({ emailAddress: formData.email, password: formData.password });
-      if (result.status === 'complete') { await setActive({ session: result.createdSessionId }); navigate('/'); }
+      const credential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      if (formData.fullName) await updateProfile(credential.user, { displayName: formData.fullName });
+      navigate('/');
     } catch (err) {
-      if (err.errors?.[0]?.code === 'form_identifier_exists') { setError('Email already registered. Sign in instead.'); }
-      else { setError(err.errors?.[0]?.longMessage || 'Sign up failed. Please try again.'); }
+      const code = err.code;
+      if (code === 'auth/email-already-in-use') { setError('This email is already registered. Sign in instead.'); }
+      else if (code === 'auth/weak-password') { setError('Password must be at least 6 characters.'); }
+      else if (code === 'auth/invalid-email') { setError('Please enter a valid email address.'); }
+      else { setError('Sign up failed. Please try again.'); }
     } finally { setIsLoading(false); }
   };
 
@@ -167,7 +170,7 @@ const SignUp = () => {
               <label style={labelStyle}>EMAIL ADDRESS</label>
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', fontSize: '13px' }}>✉</span>
-                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="your.email@christuniversity.in" required
+                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="you@example.com" required
                   onFocus={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'; }} onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                   style={{ ...inputStyle, padding: '12px 16px 12px 42px' }} />
               </div>

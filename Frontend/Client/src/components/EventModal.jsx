@@ -234,7 +234,7 @@ const EventModal = ({ event, onClose }) => {
                             <Divider />
 
                             {/* Entry fee — only shown when not free */}
-                            {event.isFree === false && event.entryFee && (
+                            {event.isFree === false && event.entryFee != null && (
                                 <MetaBlock label="ENTRY FEE">
                                     <MetaVal style={{ color: '#fff', fontFamily: "'Space Mono',monospace", fontSize: 12, letterSpacing: 1 }}>
                                         ₹{event.entryFee}

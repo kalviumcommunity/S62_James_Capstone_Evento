@@ -1,5 +1,16 @@
 const Event = require('../models/event.model');
 const { cloudinary } = require('../utils/cloudinary');
+const { Readable } = require('stream');
+
+// Upload a Buffer directly to Cloudinary via upload_stream (no disk I/O)
+const uploadBuffer = (buffer, folder = 'evento-posters') =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream({ folder }, (err, result) => {
+      if (err) reject(err); else resolve(result);
+    });
+    Readable.from(buffer).pipe(stream);
+  });
+
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const splitChip = v => (v || '').split(',').map(t => t.trim()).filter(Boolean);
@@ -113,10 +124,8 @@ const createEvent = async (req, res) => {
       return res.status(400).json({ message: 'Poster image is required' });
     }
 
-    // Upload poster to Cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'evento-posters',
-    });
+    // Upload poster to Cloudinary directly from memory buffer (no disk write)
+    const result = await uploadBuffer(req.file.buffer);
 
     const payload = buildPayload(req.body);
     payload.image = result.secure_url;
@@ -150,9 +159,7 @@ const updateEvent = async (req, res) => {
       if (event.posterPublicId) {
         await cloudinary.uploader.destroy(event.posterPublicId);
       }
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'evento-posters',
-      });
+      const result = await uploadBuffer(req.file.buffer);
       updateData.image = result.secure_url;
       updateData.posterPublicId = result.public_id;
     }

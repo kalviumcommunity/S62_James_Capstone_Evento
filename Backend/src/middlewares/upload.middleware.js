@@ -1,25 +1,23 @@
 const multer = require('multer');
 const path = require('path');
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueName = `${Date.now()}-${file.originalname}`;
-    cb(null, uniqueName);
-  },
-});
+// Use memoryStorage — files never touch disk.
+// Uploading to Cloudinary happens directly from req.file.buffer.
+// This avoids the uploads/ folder entirely and works on ephemeral filesystems (Render).
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png/;
-  const extName = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimeType = allowedTypes.test(file.mimetype);
-
-  if (extName && mimeType) return cb(null, true);
-  cb(new Error('Only .jpeg, .jpg, .png files are allowed!'));
+  const allowed = /jpeg|jpg|png|gif|webp/;
+  const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
+  const mimeOk = allowed.test(file.mimetype);
+  if (extOk && mimeOk) return cb(null, true);
+  cb(new Error('Only image files (jpeg, jpg, png, gif, webp) are allowed!'));
 };
 
-const upload = multer({ storage, fileFilter });
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB hard limit on server side
+});
 
 module.exports = upload;

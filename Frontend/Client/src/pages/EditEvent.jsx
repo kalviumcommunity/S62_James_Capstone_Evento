@@ -2,124 +2,262 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 
-/* ─── Background Dot Canvas ────────────────────────────────────────────── */
+const API = import.meta.env.VITE_API_URL || 'https://s62-james-capstone-evento.onrender.com';
+
+/* ── Dot canvas ─────────────────────────────────────────────────────────── */
 const DotCanvas = () => {
-    const canvasRef = useRef(null);
-    const dotsRef = useRef([]);
-    const animRef = useRef(null);
-    const S = 28;
-    const buildDots = useCallback((W, H) => {
-        const arr = [];
-        for (let r = 0; r < Math.ceil(H / S) + 1; r++)
-            for (let c = 0; c < Math.ceil(W / S) + 1; c++)
-                arr.push({ x: c * S, y: r * S, b: 0.07 + Math.random() * 0.09, p: Math.random() * Math.PI * 2, ps: 0.005 + Math.random() * 0.007 });
-        dotsRef.current = arr;
-    }, []);
+    const ref = useRef(null);
     useEffect(() => {
-        const canvas = canvasRef.current; if (!canvas) return;
+        const canvas = ref.current; if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; buildDots(canvas.width, canvas.height); };
+        let dots = [], anim;
+        const S = 28;
+        const build = (W, H) => {
+            dots = [];
+            for (let r = 0; r < Math.ceil(H / S) + 1; r++)
+                for (let c = 0; c < Math.ceil(W / S) + 1; c++)
+                    dots.push({ x: c * S, y: r * S, b: .06 + Math.random() * .08, p: Math.random() * Math.PI * 2, ps: .004 + Math.random() * .007 });
+        };
+        const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; build(canvas.width, canvas.height); };
         const draw = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            dotsRef.current.forEach(d => { d.p += d.ps; ctx.beginPath(); ctx.arc(d.x, d.y, 1.1, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${d.b + Math.sin(d.p) * 0.04})`; ctx.fill(); });
-            animRef.current = requestAnimationFrame(draw);
+            dots.forEach(d => { d.p += d.ps; ctx.beginPath(); ctx.arc(d.x, d.y, 1, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${d.b + Math.sin(d.p) * .03})`; ctx.fill(); });
+            anim = requestAnimationFrame(draw);
         };
         resize(); draw();
         window.addEventListener('resize', resize);
-        return () => { cancelAnimationFrame(animRef.current); window.removeEventListener('resize', resize); };
-    }, [buildDots]);
-    return <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }} />;
+        return () => { cancelAnimationFrame(anim); window.removeEventListener('resize', resize); };
+    }, []);
+    return <canvas ref={ref} style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }} />;
 };
 
-/* ─── Shared styles ───────────────────────────────────────────────────── */
-const fieldBase = { width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '13px 16px', borderRadius: '2px', fontSize: '13px', fontFamily: "'DM Sans', sans-serif", outline: 'none', transition: 'border-color 0.2s, background 0.2s' };
-const labelStyle = { display: 'block', fontSize: '10px', letterSpacing: '3px', color: 'rgba(255,255,255,0.35)', fontFamily: "'Space Mono', monospace", marginBottom: '8px' };
-const dividerStyle = { height: '1px', background: 'rgba(255,255,255,0.06)' };
-const focusOn = e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'; e.currentTarget.style.background = 'rgba(168,85,247,0.03)'; };
-const focusOff = e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; };
-const sectionHead = (icon, label, color) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-        <span style={{ color, fontSize: '14px' }}>{icon}</span>
-        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', letterSpacing: '3px', color: 'rgba(255,255,255,0.5)' }}>{label}</span>
+/* ── Chip component ─────────────────────────────────────────────────────── */
+const Chip = ({ label, onRemove, variant = '' }) => {
+    const s = {
+        '': { bg: 'rgba(168,85,247,0.12)', bd: 'rgba(168,85,247,0.28)', c: 'rgba(168,85,247,0.9)' },
+        theme: { bg: 'rgba(6,182,212,0.1)', bd: 'rgba(6,182,212,0.3)', c: 'rgba(6,182,212,0.9)' },
+        note: { bg: 'rgba(245,158,11,0.1)', bd: 'rgba(245,158,11,0.3)', c: 'rgba(245,158,11,0.9)' },
+    }[variant] || {};
+    return (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', background: s.bg, border: `1px solid ${s.bd}`, color: s.c, borderRadius: 2, fontSize: 11, fontFamily: "'Space Mono',monospace", whiteSpace: 'nowrap' }}>
+            {label}
+            <button onClick={onRemove} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 12, lineHeight: 1, padding: 0, opacity: .7 }}>✕</button>
+        </span>
+    );
+};
+
+/* ── Chip input row ─────────────────────────────────────────────────────── */
+const ChipInput = ({ chips, setChips, placeholder, variant }) => {
+    const [val, setVal] = useState('');
+    const add = () => { const v = val.trim(); if (!v) return; setChips(p => [...p, v]); setVal(''); };
+    return (
+        <div onClick={e => e.currentTarget.querySelector('input').focus()}
+            style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2, padding: '8px 10px', minHeight: 44, cursor: 'text' }}>
+            {chips.map((c, i) => <Chip key={i} label={c} variant={variant} onRemove={() => setChips(p => p.filter((_, j) => j !== i))} />)}
+            <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+                placeholder={placeholder}
+                style={{ background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 12, minWidth: 120, flex: 1, padding: '2px 4px', fontFamily: "'DM Sans',sans-serif" }} />
+        </div>
+    );
+};
+
+/* ── Toggle ─────────────────────────────────────────────────────────────── */
+const Toggle = ({ checked, onChange, label }) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{label}</span>
+        <label style={{ position: 'relative', width: 40, height: 22, flexShrink: 0 }}>
+            <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }} />
+            <span style={{ position: 'absolute', inset: 0, borderRadius: 20, cursor: 'pointer', transition: 'all .25s', background: checked ? 'rgba(168,85,247,0.3)' : 'rgba(255,255,255,0.1)', border: checked ? '1px solid rgba(168,85,247,0.5)' : '1px solid rgba(255,255,255,0.12)' }}>
+                <span style={{ position: 'absolute', width: 16, height: 16, borderRadius: '50%', top: 2, left: checked ? 22 : 2, transition: 'all .25s', background: checked ? '#a855f7' : 'rgba(255,255,255,0.4)' }} />
+            </span>
+        </label>
     </div>
 );
 
-const STYLES = `
-  @keyframes scanlineEE{0%{top:-2px;}100%{top:100vh;}}
-  @keyframes fadeUpEE{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
-  @keyframes toastInEE{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
-  .ee-d1{animation:fadeUpEE 0.6s ease both;animation-delay:0.04s;}
-  .ee-d2{animation:fadeUpEE 0.6s ease both;animation-delay:0.08s;}
-  .ee-d3{animation:fadeUpEE 0.6s ease both;animation-delay:0.12s;}
-  .ee-d4{animation:fadeUpEE 0.6s ease both;animation-delay:0.16s;}
-  .ee-d5{animation:fadeUpEE 0.6s ease both;animation-delay:0.2s;}
-  .ee-d6{animation:fadeUpEE 0.6s ease both;animation-delay:0.24s;}
-  .ee-d7{animation:fadeUpEE 0.6s ease both;animation-delay:0.28s;}
-  .ee-d8{animation:fadeUpEE 0.6s ease both;animation-delay:0.32s;}
-  .ee-toast{animation:toastInEE 0.3s ease both;}
-  input[type="date"]::-webkit-calendar-picker-indicator,
-  input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(0.4);cursor:pointer;}
-  select option{background:#111;color:#fff;}
-`;
+/* ── Section ────────────────────────────────────────────────────────────── */
+const Section = ({ icon, iconColor, title, children }) => (
+    <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 4, padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <span style={{ color: iconColor, fontSize: 14 }}>{icon}</span>
+            <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: 3, color: 'rgba(255,255,255,0.5)' }}>{title}</span>
+        </div>
+        {children}
+    </div>
+);
 
-/* ─── EditEvent ───────────────────────────────────────────────────────── */
+const Lbl = ({ children }) => (
+    <label style={{ display: 'block', fontSize: 10, letterSpacing: '2.5px', color: 'rgba(255,255,255,0.35)', fontFamily: "'Space Mono',monospace", marginBottom: 7 }}>{children}</label>
+);
+const Req = () => <span style={{ color: '#a855f7' }}> *</span>;
+const Opt = () => <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 9, letterSpacing: 1 }}> OPTIONAL</span>;
+
+const fieldSt = { width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '12px 14px', borderRadius: 2, fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: 'none', transition: 'border-color .2s,background .2s' };
+const onF = e => { e.target.style.borderColor = 'rgba(168,85,247,0.5)'; e.target.style.background = 'rgba(168,85,247,0.03)'; };
+const offF = e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.background = 'rgba(255,255,255,0.04)'; };
+
+const RemoveBtn = ({ onClick }) => (
+    <button onClick={onClick} style={{ width: 30, height: 30, flexShrink: 0, background: 'transparent', border: '1px solid rgba(255,80,80,0.2)', color: 'rgba(255,100,100,0.5)', borderRadius: 2, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s' }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,80,80,0.5)'; e.currentTarget.style.color = 'rgba(255,100,100,0.9)'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,80,80,0.2)'; e.currentTarget.style.color = 'rgba(255,100,100,0.5)'; }}>✕</button>
+);
+
+const AddBtn = ({ onClick, label }) => (
+    <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: '1px dashed rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.35)', padding: '9px 14px', borderRadius: 2, cursor: 'pointer', fontSize: 12, fontFamily: "'Space Mono',monospace", letterSpacing: 1, transition: 'all .2s', width: 'fit-content' }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; e.currentTarget.style.color = 'rgba(168,85,247,0.7)'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}>
+        ⊕ {label}
+    </button>
+);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EditEvent
+═══════════════════════════════════════════════════════════════════════════ */
 const EditEvent = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const fileInputRef = useRef(null);
 
-    const emptyForm = { title: '', description: '', date: '', time: '', venue: '', organizer: '', contact: '', eventType: '', tags: '', registrationLink: '' };
-    const [form, setForm] = useState(emptyForm);
+    /* ── Loading / submit state ── */
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toast, setToast] = useState(null);
-    const [existingImage, setExistingImage] = useState(null);
 
-    const tagList = form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+    /* ── Text fields ── */
+    const [form, setForm] = useState({
+        title: '', subtitle: '', description: '', eventType: '', level: '',
+        startDate: '', endDate: '', startTime: '', endTime: '', duration: '', deadline: '',
+        venue: '', campus: '', city: '', streamLink: '',
+        organizer: '', department: '', institution: '',
+        registrationLink: '', eventWebsite: '', entryFee: '', prizePool: '',
+    });
+
+    /* ── Chip arrays (useState — never DOM manipulation) ── */
+    const [tags, setTags] = useState([]);
+    const [themes, setThemes] = useState([]);
+    const [importantNotes, setImportantNotes] = useState([]);
+    const [prizes, setPrizes] = useState([]);
+
+    /* ── Repeatable rows ── */
+    const [contacts, setContacts] = useState([{ name: '', phone: '' }]);
+    const [speakers, setSpeakers] = useState([]);
+
+    /* ── Toggles ── */
+    const [isFree, setIsFree] = useState(true);
+    const [hasPrizes, setHasPrizes] = useState(false);
+
+    /* ── Poster ── */
+    const [existingImage, setExistingImage] = useState(null);
+    const [newPoster, setNewPoster] = useState(null);
+    const [posterPreview, setPosterPreview] = useState(null);
 
     const showToast = (type, msg) => { setToast({ type, msg }); setTimeout(() => setToast(null), 3500); };
-    const handleChange = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+    const setField = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
-    /* ── Load existing event data ── */
+    /* ── Load event ── */
     useEffect(() => {
-        const fetchEvent = async () => {
+        const load = async () => {
             try {
-                const { data } = await axios.get(`https://s62-james-capstone-evento.onrender.com/api/events`);
-                const ev = data.find(e => e._id === id);
-                if (!ev) { showToast('error', 'Event not found.'); setIsLoading(false); return; }
+                // Use GET /:id so we don't fetch all events
+                const { data: ev } = await axios.get(`${API}/api/events/${id}`);
+
+                // Text fields — map legacy date/time to new field names
                 setForm({
                     title: ev.title || '',
+                    subtitle: ev.subtitle || '',
                     description: ev.description || '',
-                    date: ev.date ? ev.date.slice(0, 10) : '',
-                    time: ev.time || '',
-                    venue: ev.venue || '',
-                    organizer: ev.organizer || '',
-                    contact: ev.contact || '',
                     eventType: ev.eventType || '',
-                    tags: Array.isArray(ev.tags) ? ev.tags.join(', ') : (ev.tags || ''),
+                    level: ev.level || '',
+                    startDate: (ev.startDate || ev.date) ? (ev.startDate || ev.date).slice(0, 10) : '',
+                    endDate: ev.endDate ? ev.endDate.slice(0, 10) : '',
+                    startTime: ev.startTime || ev.time || '',
+                    endTime: ev.endTime || '',
+                    duration: ev.duration || '',
+                    deadline: ev.deadline ? ev.deadline.slice(0, 10) : '',
+                    venue: ev.venue || '',
+                    campus: ev.campus || '',
+                    city: ev.city || '',
+                    streamLink: ev.streamLink || '',
+                    organizer: ev.organizer || '',
+                    department: ev.department || '',
+                    institution: ev.institution || '',
                     registrationLink: ev.registrationLink || '',
+                    eventWebsite: ev.eventWebsite || '',
+                    entryFee: ev.entryFee != null ? String(ev.entryFee) : '',
+                    prizePool: ev.prizePool != null ? String(ev.prizePool) : '',
                 });
+
+                // Chip arrays — as state arrays (NOT joined strings in input)
+                setTags(ev.tags || []);
+                setThemes(ev.themes || []);
+                setImportantNotes(ev.importantNotes || []);
+                setPrizes(ev.prizes || []);
+
+                // Repeatable rows — normalize missing fields for old documents
+                setContacts((ev.contacts || []).length ? ev.contacts : [{ name: '', phone: '' }]);
+                setSpeakers(ev.speakers || []);
+
+                // Toggles
+                setIsFree(ev.isFree !== false);   // default true if missing
+                setHasPrizes(ev.hasPrizes === true);
+
+                // Existing poster
                 setExistingImage(ev.image || null);
+
             } catch (err) {
                 showToast('error', 'Failed to load event data.');
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchEvent();
+        load();
     }, [id]);
 
-    /* ── Submit update ── */
+    /* ── Poster handling ── */
+    const applyFile = file => {
+        if (!file?.type.startsWith('image/')) { showToast('error', 'Please select an image file.'); return; }
+        if (file.size > 10 * 1024 * 1024) { showToast('error', 'Poster must be under 10 MB.'); return; }
+        setNewPoster(file);
+        setPosterPreview(URL.createObjectURL(file));
+    };
+    const clearNewPoster = e => {
+        e.stopPropagation();
+        setNewPoster(null); setPosterPreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    /* ── Contacts ── */
+    const addContact = () => setContacts(p => [...p, { name: '', phone: '' }]);
+    const updateContact = (i, key, val) => setContacts(p => p.map((c, j) => j === i ? { ...c, [key]: val } : c));
+    const removeContact = i => setContacts(p => p.filter((_, j) => j !== i));
+
+    /* ── Speakers ── */
+    const addSpeaker = () => setSpeakers(p => [...p, { name: '', designation: '' }]);
+    const updateSpeaker = (i, key, val) => setSpeakers(p => p.map((s, j) => j === i ? { ...s, [key]: val } : s));
+    const removeSpeaker = i => setSpeakers(p => p.filter((_, j) => j !== i));
+
+    /* ── Submit ── */
     const handleSubmit = async e => {
         e.preventDefault();
-        if (!form.title || !form.description || !form.date || !form.time || !form.venue || !form.organizer || !form.eventType) {
+        if (!form.title || !form.description || !form.eventType || !form.startDate || !form.startTime || !form.venue || !form.organizer) {
             showToast('error', 'Please fill in all required fields.'); return;
         }
         setIsSubmitting(true);
         try {
-            const payload = { ...form, tags: form.tags };
-            await axios.put(`https://s62-james-capstone-evento.onrender.com/api/events/${id}`, payload);
+            const fd = new FormData();
+            Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+            fd.append('tags', tags.join(','));
+            fd.append('themes', themes.join(','));
+            fd.append('importantNotes', importantNotes.join(','));
+            fd.append('prizes', prizes.join(','));
+            fd.append('contacts', JSON.stringify(contacts.filter(c => c.name.trim())));
+            fd.append('speakers', JSON.stringify(speakers.filter(s => s.name.trim())));
+            fd.append('isFree', String(isFree));
+            fd.append('hasPrizes', String(hasPrizes));
+            if (newPoster) fd.append('poster', newPoster, newPoster.name);
+
+            await axios.put(`${API}/api/events/${id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
             showToast('success', 'Event updated successfully!');
-            setTimeout(() => navigate('/'), 1800);
+            setTimeout(() => navigate('/'), 1600);
         } catch (err) {
             showToast('error', err.response?.data?.message || err.message || 'Failed to update event.');
         } finally {
@@ -127,186 +265,228 @@ const EditEvent = () => {
         }
     };
 
-    const toastColors = { success: '#22c55e', error: '#ef4444' };
-    const toastIcons = { success: '✓', error: '✕' };
+    const GRID2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 };
+    const GRID3 = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 };
+
+    const toastColor = { success: '#22c55e', error: '#ef4444' };
+
+    const STYLES = `
+    @media (max-width:768px) {
+      .ee-grid2,.ee-grid3{grid-template-columns:1fr!important;}
+      .ee-main{padding:28px 14px 80px!important;}
+    }
+    @keyframes scanlineEE{0%{top:-2px}100%{top:100vh}}
+    @keyframes fadeUpEE{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    .ee-fade{animation:fadeUpEE .5s ease both;}
+    input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.2);}
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(0.35);cursor:pointer;}
+    select option{background:#111;}
+  `;
+
+    const previewSrc = posterPreview || existingImage;
 
     return (
-        <div style={{ background: '#0a0a0a', color: '#fff', fontFamily: "'DM Sans', sans-serif", minHeight: '100vh' }}>
+        <div style={{ background: '#0a0a0a', color: '#fff', fontFamily: "'DM Sans',sans-serif", minHeight: '100vh' }}>
             <style>{STYLES}</style>
             <DotCanvas />
-
-            {/* Scanline */}
-            <div style={{ position: 'fixed', left: 0, right: 0, height: '2px', background: 'linear-gradient(90deg,transparent,rgba(168,85,247,0.12),transparent)', animation: 'scanlineEE 8s linear infinite', pointerEvents: 'none', zIndex: 50 }} />
-            {/* Radial glow */}
-            <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1, background: 'radial-gradient(ellipse 60% 50% at 50% 20%,rgba(168,85,247,0.06) 0%,transparent 70%)' }} />
+            <div style={{ position: 'fixed', left: 0, right: 0, height: 1, background: 'linear-gradient(90deg,transparent,rgba(168,85,247,0.1),transparent)', animation: 'scanlineEE 8s linear infinite', pointerEvents: 'none', zIndex: 50 }} />
+            <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1, background: 'radial-gradient(ellipse 60% 40% at 50% 10%,rgba(168,85,247,0.05),transparent 70%)' }} />
 
             {/* Toast */}
             {toast && (
-                <div className="ee-toast" style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(15,15,15,0.95)', border: `1px solid ${toastColors[toast.type]}44`, borderRadius: '2px', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '10px', zIndex: 999, backdropFilter: 'blur(12px)' }}>
-                    <span style={{ color: toastColors[toast.type], fontFamily: "'Space Mono', monospace" }}>{toastIcons[toast.type]}</span>
-                    <span style={{ fontSize: '13px', color: '#fff' }}>{toast.msg}</span>
+                <div style={{ position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)', background: 'rgba(15,15,15,0.95)', border: `1px solid ${toastColor[toast.type]}44`, borderRadius: 2, padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 10, zIndex: 999, backdropFilter: 'blur(12px)' }}>
+                    <span style={{ color: toastColor[toast.type], fontFamily: "'Space Mono',monospace" }}>{toast.type === 'error' ? '✕' : '✓'}</span>
+                    <span style={{ fontSize: 13 }}>{toast.msg}</span>
                 </div>
             )}
 
-            {/* NAV */}
-            <nav style={{ position: 'sticky', top: 0, height: '56px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', padding: '0 40px', background: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(20px)', zIndex: 100, justifyContent: 'space-between' }}>
-                <button onClick={() => navigate('/')}
-                    onMouseEnter={e => { e.currentTarget.style.color = '#fff'; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
-                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontFamily: "'Space Mono', monospace", letterSpacing: '2px', cursor: 'pointer', transition: 'color 0.2s' }}>
-                    ← DASHBOARD
-                </button>
-                <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '22px', letterSpacing: '3px' }}>EVENTO</div>
-                <div style={{ width: '100px' }} />
-            </nav>
+            <main className="ee-main" style={{ position: 'relative', zIndex: 2, maxWidth: 760, margin: '0 auto', padding: '40px 24px 100px' }}>
 
-            <main style={{ position: 'relative', zIndex: 2, maxWidth: '780px', margin: '0 auto', padding: '48px 24px 100px' }}>
-
-                {/* Page Header */}
-                <div className="ee-d1" style={{ marginBottom: '40px' }}>
-                    <div style={{ fontSize: '10px', letterSpacing: '4px', color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace", marginBottom: '12px' }}>EDITING EVENT</div>
-                    <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(40px,6vw,64px)', letterSpacing: '3px', lineHeight: 0.95 }}>
-                        <span style={{ display: 'block', color: '#fff' }}>EDIT</span>
-                        <span style={{ display: 'block', WebkitTextStroke: '1px rgba(255,255,255,0.25)', color: 'transparent' }}>EVENT</span>
+                {/* Header */}
+                <div className="ee-fade" style={{ marginBottom: 32 }}>
+                    <div style={{ fontSize: 10, letterSpacing: 4, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono',monospace", marginBottom: 10 }}>EDITING EVENT</div>
+                    <h1 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 'clamp(40px,6vw,62px)', letterSpacing: 3, lineHeight: .95 }}>
+                        <span style={{ display: 'block' }}>EDIT</span>
+                        <span style={{ display: 'block', WebkitTextStroke: '1px rgba(255,255,255,0.22)', color: 'transparent' }}>EVENT</span>
                     </h1>
-                    <div style={{ width: '40px', height: '2px', background: 'linear-gradient(90deg, #a855f7, transparent)', marginTop: '12px' }} />
+                    <div style={{ width: 36, height: 2, background: 'linear-gradient(90deg,#a855f7,transparent)', marginTop: 10 }} />
                 </div>
 
                 {/* Loading state */}
                 {isLoading ? (
-                    <div style={{ textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,0.3)', fontFamily: "'Space Mono', monospace", fontSize: '12px', letterSpacing: '3px' }}>
-                        <div style={{ fontSize: '28px', marginBottom: '16px', opacity: 0.3 }}>◈</div>
-                        LOADING EVENT DATA...
+                    <div style={{ textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,0.3)', fontFamily: "'Space Mono',monospace", fontSize: 12, letterSpacing: 3 }}>
+                        <div style={{ fontSize: 28, marginBottom: 16, opacity: .3 }}>◈</div>LOADING EVENT DATA...
                     </div>
                 ) : (
-                    /* FORM CARD */
                     <form onSubmit={handleSubmit}>
-                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '4px', padding: '36px 40px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                            {/* Existing poster preview */}
-                            {existingImage && (
-                                <div className="ee-d1" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.15)', borderRadius: '2px' }}>
-                                    <img src={existingImage} alt="current poster" style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />
-                                    <div>
-                                        <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#a855f7', fontFamily: "'Space Mono', monospace", marginBottom: '4px' }}>CURRENT POSTER</div>
-                                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Poster image is kept as-is. Re-upload via Create Event to change it.</div>
-                                    </div>
+                            {/* ── 1. BASICS ── */}
+                            <Section icon="◈" iconColor="#a855f7" title="BASICS">
+                                <div><Lbl>EVENT TITLE<Req /></Lbl>
+                                    <input name="title" value={form.title} onChange={setField} type="text" placeholder="e.g. VIBEXATHON 1.0" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+
+                                <div><Lbl>TAGLINE<Opt /></Lbl>
+                                    <input name="subtitle" value={form.subtitle} onChange={setField} type="text" placeholder='e.g. "Innovate. Build. Compete."' style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+
+                                <div><Lbl>DESCRIPTION<Req /></Lbl>
+                                    <textarea name="description" value={form.description} onChange={setField} placeholder="What is this event about?" style={{ ...fieldSt, resize: 'vertical', minHeight: 100, lineHeight: 1.6 }} onFocus={onF} onBlur={offF} /></div>
+
+                                <div className="ee-grid2" style={GRID2}>
+                                    <div><Lbl>EVENT TYPE<Req /></Lbl>
+                                        <select name="eventType" value={form.eventType} onChange={setField} style={fieldSt} onFocus={onF} onBlur={offF}>
+                                            <option value="" disabled>Select type</option>
+                                            {['Cultural', 'Technical', 'Hackathon', 'Talk / Seminar', 'Workshop', 'Film / Media', 'Music', 'Drama', 'Sports', 'Other'].map(t => <option key={t}>{t}</option>)}
+                                        </select></div>
+                                    <div><Lbl>LEVEL<Opt /></Lbl>
+                                        <select name="level" value={form.level} onChange={setField} style={fieldSt} onFocus={onF} onBlur={offF}>
+                                            <option value="">Select level</option>
+                                            {['College', 'Inter-College', 'State', 'National', 'International'].map(l => <option key={l}>{l}</option>)}
+                                        </select></div>
                                 </div>
-                            )}
 
-                            <div style={dividerStyle} />
+                                <div><Lbl>TAGS<span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 9 }}> PRESS ENTER TO ADD</span></Lbl>
+                                    <ChipInput chips={tags} setChips={setTags} placeholder="e.g. free-entry, open-to-all..." variant="" /></div>
 
-                            {/* ── Basic Info ── */}
-                            <div className="ee-d2">
-                                {sectionHead('◈', 'BASIC INFO', '#a855f7')}
-                                <div style={{ marginBottom: '20px' }}>
-                                    <label style={labelStyle}>EVENT TITLE</label>
-                                    <input name="title" value={form.title} onChange={handleChange} type="text" placeholder="e.g. Tech Summit 2025" style={fieldBase} onFocus={focusOn} onBlur={focusOff} required />
+                                <div><Lbl>THEMES / TRACKS<Opt /></Lbl>
+                                    <ChipInput chips={themes} setChips={setThemes} placeholder='e.g. AI / ML, Smart City...' variant="theme" /></div>
+                            </Section>
+
+                            {/* ── 2. DATE, TIME & DEADLINE ── */}
+                            <Section icon="◷" iconColor="#06b6d4" title="DATE, TIME & DEADLINE">
+                                <div className="ee-grid3" style={GRID3}>
+                                    <div><Lbl>START DATE<Req /></Lbl><input name="startDate" value={form.startDate} onChange={setField} type="date" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                    <div><Lbl>END DATE<Opt /></Lbl><input name="endDate" value={form.endDate} onChange={setField} type="date" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                    <div><Lbl>REG. DEADLINE</Lbl><input name="deadline" value={form.deadline} onChange={setField} type="date" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
                                 </div>
+                                <div className="ee-grid3" style={GRID3}>
+                                    <div><Lbl>START TIME<Req /></Lbl><input name="startTime" value={form.startTime} onChange={setField} type="time" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                    <div><Lbl>END TIME<Opt /></Lbl><input name="endTime" value={form.endTime} onChange={setField} type="time" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                    <div><Lbl>DURATION<Opt /></Lbl><input name="duration" value={form.duration} onChange={setField} type="text" placeholder='e.g. "24 Hours"' style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                </div>
+                                <div><Lbl>IMPORTANT NOTES<span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 9 }}> PRESS ENTER TO ADD</span></Lbl>
+                                    <ChipInput chips={importantNotes} setChips={setImportantNotes} placeholder='"Bring your college ID", "Certificate provided"...' variant="note" /></div>
+                            </Section>
+
+                            {/* ── 3. LOCATION ── */}
+                            <Section icon="◎" iconColor="#f59e0b" title="LOCATION">
+                                <div className="ee-grid3" style={GRID3}>
+                                    <div><Lbl>VENUE / HALL<Req /></Lbl><input name="venue" value={form.venue} onChange={setField} type="text" placeholder="e.g. Block I Auditorium" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                    <div><Lbl>CAMPUS<Opt /></Lbl><input name="campus" value={form.campus} onChange={setField} type="text" placeholder="e.g. Kengeri Campus" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                    <div><Lbl>CITY</Lbl><input name="city" value={form.city} onChange={setField} type="text" placeholder="e.g. Bengaluru" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                </div>
+                                <div><Lbl>LIVE STREAM LINK<Opt /></Lbl>
+                                    <input name="streamLink" value={form.streamLink} onChange={setField} type="url" placeholder="YouTube / Zoom / Meet link" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                            </Section>
+
+                            {/* ── 4. ORGANISER ── */}
+                            <Section icon="⊹" iconColor="#6366f1" title="ORGANISER">
+                                <div className="ee-grid3" style={GRID3}>
+                                    <div><Lbl>CLUB / COUNCIL<Req /></Lbl><input name="organizer" value={form.organizer} onChange={setField} type="text" placeholder="e.g. ASCII, IEEE CS" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                    <div><Lbl>DEPARTMENT<Opt /></Lbl><input name="department" value={form.department} onChange={setField} type="text" placeholder="e.g. Dept. of CSE (DS)" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                    <div><Lbl>INSTITUTION<Opt /></Lbl><input name="institution" value={form.institution} onChange={setField} type="text" placeholder="e.g. Christ University" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                </div>
+
                                 <div>
-                                    <label style={labelStyle}>DESCRIPTION</label>
-                                    <textarea name="description" value={form.description} onChange={handleChange} placeholder="What's this event about?" style={{ ...fieldBase, resize: 'vertical', minHeight: '110px', lineHeight: 1.6 }} onFocus={focusOn} onBlur={focusOff} required />
-                                </div>
-                            </div>
-
-                            <div style={dividerStyle} />
-
-                            {/* ── Schedule ── */}
-                            <div className="ee-d3">
-                                {sectionHead('◷', 'SCHEDULE', '#06b6d4')}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                    <div>
-                                        <label style={labelStyle}>DATE</label>
-                                        <input name="date" value={form.date} onChange={handleChange} type="date" style={fieldBase} onFocus={focusOn} onBlur={focusOff} required />
+                                    <Lbl>CONTACTS FOR QUERIES</Lbl>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        {contacts.map((c, i) => (
+                                            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                <input value={c.name} onChange={e => updateContact(i, 'name', e.target.value)} placeholder="Name" style={{ ...fieldSt, maxWidth: 180, flex: '0 0 180px' }} onFocus={onF} onBlur={offF} />
+                                                <input value={c.phone} onChange={e => updateContact(i, 'phone', e.target.value)} placeholder="Phone or Email" style={{ ...fieldSt, flex: 1 }} onFocus={onF} onBlur={offF} />
+                                                <RemoveBtn onClick={() => removeContact(i)} />
+                                            </div>
+                                        ))}
                                     </div>
-                                    <div>
-                                        <label style={labelStyle}>TIME</label>
-                                        <input name="time" value={form.time} onChange={handleChange} type="time" style={fieldBase} onFocus={focusOn} onBlur={focusOff} required />
-                                    </div>
+                                    <div style={{ marginTop: 10 }}><AddBtn onClick={addContact} label="ADD CONTACT" /></div>
                                 </div>
-                            </div>
 
-                            <div style={dividerStyle} />
-
-                            {/* ── Location & Organizer ── */}
-                            <div className="ee-d4">
-                                {sectionHead('◎', 'LOCATION & ORGANIZER', '#f59e0b')}
-                                <div style={{ marginBottom: '16px' }}>
-                                    <label style={labelStyle}>VENUE</label>
-                                    <input name="venue" value={form.venue} onChange={handleChange} type="text" placeholder="e.g. Bangalore International Centre" style={fieldBase} onFocus={focusOn} onBlur={focusOff} required />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                    <div>
-                                        <label style={labelStyle}>ORGANIZER <span style={{ color: '#a855f7' }}>*</span></label>
-                                        <input name="organizer" value={form.organizer} onChange={handleChange} type="text" placeholder="Organizer name" style={fieldBase} onFocus={focusOn} onBlur={focusOff} required />
-                                    </div>
-                                    <div>
-                                        <label style={labelStyle}>CONTACT INFO</label>
-                                        <input name="contact" value={form.contact} onChange={handleChange} type="text" placeholder="Email or phone" style={fieldBase} onFocus={focusOn} onBlur={focusOff} />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style={dividerStyle} />
-
-                            {/* ── Classification ── */}
-                            <div className="ee-d5">
-                                {sectionHead('⊹', 'CLASSIFICATION', '#6366f1')}
-                                <div style={{ marginBottom: '16px' }}>
-                                    <label style={labelStyle}>EVENT TYPE</label>
-                                    <select name="eventType" value={form.eventType} onChange={handleChange} style={fieldBase} onFocus={focusOn} onBlur={focusOff} required>
-                                        <option value="" disabled>Select a category</option>
-                                        <option value="Drama">Drama</option>
-                                        <option value="Music">Music</option>
-                                        <option value="Technology">Technology</option>
-                                        <option value="Sports">Sports</option>
-                                        <option value="Seminar">Seminar</option>
-                                        <option value="Cultural">Cultural</option>
-                                        <option value="Workshop">Workshop</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
                                 <div>
-                                    <label style={labelStyle}>TAGS <span style={{ color: 'rgba(255,255,255,0.2)', letterSpacing: '1px', fontSize: '9px' }}>(COMMA-SEPARATED)</span></label>
-                                    <input name="tags" value={form.tags} onChange={handleChange} type="text" placeholder="e.g. music, fest, cultural, free" style={fieldBase} onFocus={focusOn} onBlur={focusOff} />
-                                    {tagList.length > 0 && (
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
-                                            {tagList.map((t, i) => (
-                                                <span key={i} style={{ padding: '3px 10px', background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', color: 'rgba(168,85,247,0.8)', borderRadius: '2px', fontSize: '10px', fontFamily: "'Space Mono', monospace", letterSpacing: '1px' }}>{t}</span>
-                                            ))}
-                                        </div>
+                                    <Lbl>SPEAKERS / GUESTS<Opt /></Lbl>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        {speakers.map((s, i) => (
+                                            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                <input value={s.name} onChange={e => updateSpeaker(i, 'name', e.target.value)} placeholder="Name" style={{ ...fieldSt, maxWidth: 160, flex: '0 0 160px' }} onFocus={onF} onBlur={offF} />
+                                                <input value={s.designation} onChange={e => updateSpeaker(i, 'designation', e.target.value)} placeholder="Designation & Organisation" style={{ ...fieldSt, flex: 1 }} onFocus={onF} onBlur={offF} />
+                                                <RemoveBtn onClick={() => removeSpeaker(i)} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{ marginTop: 10 }}><AddBtn onClick={addSpeaker} label="ADD SPEAKER" /></div>
+                                </div>
+                            </Section>
+
+                            {/* ── 5. REGISTRATION & PRIZES ── */}
+                            <Section icon="✦" iconColor="rgba(34,197,94,0.8)" title="REGISTRATION & PRIZES">
+                                <div className="ee-grid2" style={GRID2}>
+                                    <div><Lbl>REGISTRATION LINK</Lbl>
+                                        <input name="registrationLink" value={form.registrationLink} onChange={setField} type="url" placeholder="Google Form / Unstop / Devfolio" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                    <div><Lbl>EVENT WEBSITE<Opt /></Lbl>
+                                        <input name="eventWebsite" value={form.eventWebsite} onChange={setField} type="url" placeholder="e.g. vibexathon.in" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                </div>
+
+                                <Toggle checked={isFree} onChange={setIsFree} label="Free Event" />
+                                {!isFree && (
+                                    <div><Lbl>ENTRY FEE (₹)</Lbl>
+                                        <input name="entryFee" value={form.entryFee} onChange={setField} type="number" placeholder="e.g. 199" min="0" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                )}
+
+                                <Toggle checked={hasPrizes} onChange={setHasPrizes} label="This event has prizes" />
+                                {hasPrizes && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        <div><Lbl>TOTAL PRIZE POOL (₹)</Lbl>
+                                            <input name="prizePool" value={form.prizePool} onChange={setField} type="number" placeholder="e.g. 50000" min="0" style={fieldSt} onFocus={onF} onBlur={offF} /></div>
+                                        <div><Lbl>PRIZE BREAKDOWN<span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 9 }}> PRESS ENTER TO ADD</span></Lbl>
+                                            <ChipInput chips={prizes} setChips={setPrizes} placeholder='"1st: ₹25,000", "2nd: ₹15,000"...' variant="" /></div>
+                                    </div>
+                                )}
+                            </Section>
+
+                            {/* ── 6. POSTER ── */}
+                            <Section icon="⊡" iconColor="rgba(255,255,255,0.35)" title="POSTER / BANNER">
+                                <div
+                                    onClick={() => fileInputRef.current?.click()}
+                                    onDragOver={e => { e.preventDefault(); }}
+                                    onDrop={e => { e.preventDefault(); applyFile(e.dataTransfer.files[0]); }}
+                                    style={{ border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 2, background: 'rgba(255,255,255,0.02)', padding: '24px 20px', textAlign: 'center', cursor: 'pointer', transition: 'border-color .2s', position: 'relative' }}>
+                                    <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => applyFile(e.target.files[0])} />
+
+                                    {previewSrc ? (
+                                        <>
+                                            <img src={previewSrc} alt="poster" style={{ maxHeight: 140, maxWidth: '100%', borderRadius: 2, objectFit: 'contain' }} />
+                                            <div style={{ marginTop: 8, fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: "'Space Mono',monospace" }}>
+                                                {newPoster ? `✓ NEW: ${newPoster.name.slice(0, 30)}` : 'CURRENT POSTER — CLICK TO REPLACE'}
+                                            </div>
+                                            {newPoster && (
+                                                <button onClick={clearNewPoster} style={{ marginTop: 8, background: 'transparent', border: '1px solid rgba(255,80,80,0.25)', color: 'rgba(255,100,100,0.6)', padding: '5px 12px', borderRadius: 2, cursor: 'pointer', fontSize: 10, fontFamily: "'Space Mono',monospace", letterSpacing: 1 }}>✕ KEEP ORIGINAL</button>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="1.5" strokeLinecap="round" style={{ margin: '0 auto 12px', display: 'block' }}>
+                                                <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 15l5-5 4 4 3-3 6 6" /><circle cx="8.5" cy="8.5" r="1.5" />
+                                            </svg>
+                                            <span style={{ color: '#a855f7', fontFamily: "'Space Mono',monospace", fontSize: 11, letterSpacing: 1 }}>BROWSE FILE</span>
+                                            <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13 }}> or drag and drop</span>
+                                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.18)', fontFamily: "'Space Mono',monospace", marginTop: 6, letterSpacing: 1 }}>PNG · JPG · GIF · UP TO 10MB</div>
+                                        </>
                                     )}
                                 </div>
-                            </div>
+                            </Section>
 
-                            <div style={dividerStyle} />
-
-                            {/* ── Registration ── */}
-                            <div className="ee-d6">
-                                {sectionHead('✦', 'REGISTRATION', 'rgba(34,197,94,0.8)')}
-                                <div>
-                                    <label style={labelStyle}>REGISTRATION LINK</label>
-                                    <div style={{ position: 'relative' }}>
-                                        <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.2)', fontSize: '12px', fontFamily: "'Space Mono', monospace", pointerEvents: 'none' }}>https://</span>
-                                        <input name="registrationLink" value={form.registrationLink} onChange={handleChange} type="text" placeholder="your-registration-link.com" style={{ ...fieldBase, paddingLeft: '76px' }} onFocus={focusOn} onBlur={focusOff} />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style={dividerStyle} />
-
-                            {/* ── Action Buttons ── */}
-                            <div className="ee-d8" style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
+                            {/* ── Action buttons ── */}
+                            <div style={{ display: 'flex', gap: 12, paddingTop: 4 }}>
                                 <button type="submit" disabled={isSubmitting}
                                     onMouseEnter={e => { if (!isSubmitting) e.currentTarget.style.background = '#e0e0e0'; }}
                                     onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
-                                    style={{ flex: 1, background: '#fff', color: '#000', border: 'none', padding: '16px', fontFamily: "'Space Mono', monospace", fontSize: '13px', letterSpacing: '3px', fontWeight: 700, cursor: isSubmitting ? 'not-allowed' : 'pointer', borderRadius: '2px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', opacity: isSubmitting ? 0.7 : 1 }}>
+                                    style={{ flex: 1, background: '#fff', color: '#000', border: 'none', padding: 15, fontFamily: "'Space Mono',monospace", fontSize: 12, letterSpacing: 3, fontWeight: 700, cursor: isSubmitting ? 'not-allowed' : 'pointer', borderRadius: 2, transition: 'background .2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, opacity: isSubmitting ? .7 : 1 }}>
                                     {isSubmitting ? 'UPDATING...' : '✎ UPDATE EVENT'}
                                 </button>
                                 <button type="button" onClick={() => navigate('/')}
                                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
-                                    style={{ padding: '16px 28px', background: 'transparent', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Space Mono', monospace", fontSize: '11px', letterSpacing: '2px', cursor: 'pointer', borderRadius: '2px', transition: 'all 0.2s', whiteSpace: 'nowrap' }}>
+                                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
+                                    style={{ padding: '15px 28px', background: 'transparent', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Space Mono',monospace", fontSize: 11, letterSpacing: 2, cursor: 'pointer', borderRadius: 2, transition: 'all .2s', whiteSpace: 'nowrap' }}>
                                     CANCEL
                                 </button>
                             </div>

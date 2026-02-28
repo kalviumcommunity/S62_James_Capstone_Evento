@@ -233,12 +233,14 @@ const EventModal = ({ event, onClose }) => {
 
                             <Divider />
 
-                            {/* Entry fee */}
-                            <MetaBlock label="ENTRY">
-                                <MetaVal style={{ color: event.isFree ? '#22c55e' : '#fff', fontFamily: "'Space Mono',monospace", fontSize: 12, letterSpacing: 1 }}>
-                                    {event.isFree ? 'FREE ENTRY' : `₹${event.entryFee || 0}`}
-                                </MetaVal>
-                            </MetaBlock>
+                            {/* Entry fee — only shown when not free */}
+                            {event.isFree === false && event.entryFee && (
+                                <MetaBlock label="ENTRY FEE">
+                                    <MetaVal style={{ color: '#fff', fontFamily: "'Space Mono',monospace", fontSize: 12, letterSpacing: 1 }}>
+                                        ₹{event.entryFee}
+                                    </MetaVal>
+                                </MetaBlock>
+                            )}
 
                             {/* Prizes */}
                             {event.hasPrizes && (

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import EventCard from '../components/EventCard';
+import EventModal from '../components/EventModal';
 import FilterBar from '../components/FilterBar';
 import { useAuth } from '../context/AuthContext';
 
@@ -122,24 +123,37 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilters, setSelectedFilters] = useState({ eventType: 'all', date: 'all' });
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   // Pull first name from Firebase displayName
   const firstName = (user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'THERE').toUpperCase();
 
   useEffect(() => {
-    axios.get('https://s62-james-capstone-evento.onrender.com/api/events')
+    axios.get(`${import.meta.env.VITE_API_URL || 'https://s62-james-capstone-evento.onrender.com'}/api/events`)
       .then(r => setEvents(r.data))
       .catch(err => console.error('Error fetching events:', err))
       .finally(() => setLoading(false));
   }, []);
 
+  const handleDelete = (deletedId) => {
+    setEvents(prev => prev.filter(e => e._id !== deletedId));
+  };
+
   const filteredEvents = Array.isArray(events) ? events.filter(event => {
     const q = searchQuery.toLowerCase();
-    const matchesSearch = !q ||
-      event.title?.toLowerCase().includes(q) ||
-      event.description?.toLowerCase().includes(q) ||
-      event.venue?.toLowerCase().includes(q) ||
-      event.organizer?.toLowerCase().includes(q);
+    if (!q) return selectedFilters.eventType === 'all' ||
+      event.eventType?.toLowerCase() === selectedFilters.eventType.toLowerCase();
+
+    // Text fields (note: description included; move to $text index at scale)
+    const textMatch = [event.title, event.subtitle, event.description,
+    event.eventType, event.venue, event.organizer, event.institution, event.city]
+      .some(f => (f || '').toLowerCase().includes(q));
+
+    // Array fields — requires .some() not direct includes
+    const arrayMatch = [...(event.tags || []), ...(event.themes || [])]
+      .some(t => t.toLowerCase().includes(q));
+
+    const matchesSearch = textMatch || arrayMatch;
     const matchesCategory = selectedFilters.eventType === 'all' ||
       event.eventType?.toLowerCase() === selectedFilters.eventType.toLowerCase();
     return matchesSearch && matchesCategory;
@@ -275,7 +289,9 @@ const HomePage = () => {
           <>
             <div className="home-grid">
               {filteredEvents.map((event, i) => (
-                <EventCard key={event._id} event={event} index={i} />
+                <EventCard key={event._id} event={event} index={i}
+                  onDelete={handleDelete}
+                  onOpen={setSelectedEvent} />
               ))}
             </div>
             {filteredEvents.length === 0 && (
@@ -286,6 +302,9 @@ const HomePage = () => {
           </>
         )}
       </section>
+
+      {/* Event detail modal */}
+      <EventModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
     </div>
   );
 };

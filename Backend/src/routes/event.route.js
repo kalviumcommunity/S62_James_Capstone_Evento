@@ -1,27 +1,15 @@
-// const express = require('express')
-// const router = express.Router();
-// const {getAllEvents,createEvent,updateEvent} = require('../controllers/event.controller')
-
-// router.get('/',getAllEvents);
-
-// router.post('/',createEvent)
-
-// router.put('/:id',updateEvent)
-
-// module.exports = router;
-
 const express = require('express');
 const router = express.Router();
-const { getAllEvents, createEvent, updateEvent } = require('../controllers/event.controller');
-const upload = require('../middlewares/upload.middleware'); // multer
-// const verifyToken = require('../middlewares/auth.middleware'); // optional auth
+const {
+    getAllEvents, getEventById,
+    createEvent, updateEvent, deleteEvent,
+} = require('../controllers/event.controller');
+const upload = require('../middlewares/upload.middleware');
 
 router.get('/', getAllEvents);
-
-// If authentication is required, use verifyToken as middleware
+router.get('/:id', getEventById);
 router.post('/', upload.single('poster'), createEvent);
-
-router.put('/:id', updateEvent);
+router.put('/:id', upload.single('poster'), updateEvent);  // poster optional on update
+router.delete('/:id', deleteEvent);
 
 module.exports = router;
-
